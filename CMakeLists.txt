@@ -1,4 +1,4 @@
-# Extra-cereb/CMakeLists.txt
+# Extracereb/CMakeLists.txt
 #
 # This file is part of NEST.
 #

@@ -35,7 +35,7 @@ namespace mynest
  * Class defining your model.
  * @note For each model, you must define one such class, with a unique name.
  */
-class Extra-cerebModule : public SLIModule
+class ExtracerebModule : public SLIModule
 {
 public:
   // Interface functions ------------------------------------------
@@ -44,12 +44,12 @@ public:
    * @note The constructor registers the module with the dynamic loader.
    *       Initialization proper is performed by the init() method.
    */
-  Extra-cerebModule();
+  ExtracerebModule();
 
   /**
    * @note The destructor does not do much in modules.
    */
-  ~Extra-cerebModule();
+  ~ExtracerebModule();
 
   /**
    * Initialize module.
