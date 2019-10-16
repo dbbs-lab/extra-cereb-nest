@@ -1,5 +1,5 @@
 /*
- *  extra-cerebmodule.h
+ *  extracerebmodule.h
  *
  *  This file is part of NEST.
  *
@@ -63,7 +63,7 @@ public:
   const std::string name( void ) const;
 
   /**
-   * Return the name of a sli file to execute when extra-cerebmodule is loaded.
+   * Return the name of a sli file to execute when extracerebmodule is loaded.
    * This mechanism can be used to define SLI commands associated with your
    * module, in particular, set up type tries for functions you have defined.
    */

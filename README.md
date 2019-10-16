@@ -33,18 +33,18 @@ The resulting output should be something similar to:
 > [...]
 >-------------------------------------------------------
 >
->You can now build and install 'extra-cerebmodule' using
+>You can now build and install 'extracerebmodule' using
 >  make
 >  make install
 >
->The library file libextra-cerebmodule.so will be installed to
+>The library file libextracerebmodule.so will be installed to
 >  /home/alberto/workspace/nest-simulator/b/lib/nest
 >Help files will be installed to
 >  /home/alberto/workspace/nest-simulator/b/share/doc/nest
 >
 >The module can be loaded into NEST using
->  (extra-cerebmodule) Install        (in SLI)
->  nest.Install('extra-cerebmodule')  (in PyNEST)
+>  (extracerebmodule) Install        (in SLI)
+>  nest.Install('extracerebmodule')  (in PyNEST)
 >
 >The module will be installed into a non-default location!
 >Make sure to set the environment variables:
@@ -73,7 +73,7 @@ python
 
 ```
 import nest
-nest.Install("extra-cerebmodule")
+nest.Install("extracerebmodule")
 
 ```
 

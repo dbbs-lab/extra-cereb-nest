@@ -31,14 +31,14 @@ cmake_minimum_required( VERSION 2.8.12 )
 #           https://nest.github.io/nest-simulator/extension_modules
 
 # 1) Name your module here, i.e. add later with -Dexternal-modules=my:
-set( SHORT_NAME extra-cereb )
+set( SHORT_NAME extracereb )
 
 #    the complete module name is here:
 set( MODULE_NAME ${SHORT_NAME}module )
 
 # 2) Add all your sources here
 set( MODULE_SOURCES
-    extra-cerebmodule.h extra-cerebmodule.cpp
+    extracerebmodule.h extracerebmodule.cpp
     closed_loop_neuron.h closed_loop_neuron.cpp
     planner_neuron.h planner_neuron.cpp
     cortex_neuron.h cortex_neuron.cpp
