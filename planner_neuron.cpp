@@ -33,7 +33,7 @@ mynest::planner_neuron::Parameters_::Parameters_()
   , target_( 0.0 )
   , prism_deviation_( 0.0 )
   , baseline_rate_( 10.0 )
-  , gain_rate_( 10.0 )
+  , gain_rate_( 1.0 )
 {
 }
 

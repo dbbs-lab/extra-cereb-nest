@@ -20,7 +20,7 @@ def run_simulation(trial_len=300, n_trials=1, prism=0.0, n=400):
             "target": 0.0,
             "prism_deviation": prism,
             "baseline_rate": 10.0,
-            "gain_rate": 10.0,
+            "gain_rate": 1.0,
             }
         )
 
