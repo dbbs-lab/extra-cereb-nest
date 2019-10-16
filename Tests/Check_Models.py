@@ -1,7 +1,7 @@
 import nest
 import sys
 
-nest.Install("extra-cerebmodule")
+nest.Install("extracerebmodule")
 
 
 CLOSED = nest.Create("closed_loop_neuron", 1)
