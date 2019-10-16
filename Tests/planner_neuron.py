@@ -3,7 +3,7 @@ import nest
 import numpy as np
 import pylab
 
-nest.Install("albertomodule")
+nest.Install("extracerebmodule")
 
 
 def run_simulation(trial_len, sim_len, target=0.0, prism=0.0, n=1):

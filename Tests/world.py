@@ -5,7 +5,7 @@ import matplotlib.pyplot as plt
 
 import trajectories
 
-nest.Install("albertomodule")
+nest.Install("extracerebmodule")
 
 
 def run_simulation(trial_len=300, n_trials=1, prism=0.0, n=400):

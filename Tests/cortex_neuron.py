@@ -4,7 +4,7 @@ import numpy as np
 import pylab
 import trajectories
 
-nest.Install("albertomodule")
+nest.Install("extracerebmodule")
 
 
 # nest.SetKernelStatus({'resolution': 1.0})
