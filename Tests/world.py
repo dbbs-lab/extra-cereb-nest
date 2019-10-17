@@ -8,7 +8,7 @@ import trajectories
 nest.Install("extracerebmodule")
 
 
-def run_simulation(trial_len=300, n_trials=1, prism=0.0, n=400):
+def run_simulation(n=400, trial_len=300, n_trials=1, prism=0.0, sensory_error=None):
     nest.ResetKernel()
     trajectories.save_file(prism, trial_len)
 
@@ -40,6 +40,18 @@ def run_simulation(trial_len=300, n_trials=1, prism=0.0, n=400):
                                   "fiber_id": i % (n//4)})
 
     nest.Connect(planner, cortex, 'one_to_one')
+
+    if sensory_error:
+        sensory_error_pop = nest.Create(
+            'poisson_generator',
+            n=n,
+            params={"rate": 100.0 * sensory_error}
+        )
+
+        nest.Connect(
+            sensory_error_pop, cortex,
+            'one_to_one', syn_spec={'weight': -1 * np.sign(sensory_error)}
+        )
 
     spikedetector = nest.Create("spike_detector")
     nest.Connect(cortex, spikedetector)
@@ -119,7 +131,7 @@ def test_integration():
     n = 400
     trial_len = 300
 
-    evs, ts = run_simulation(n=n, trial_len=trial_len)
+    evs, ts = run_simulation(n, trial_len)
 
     for j in range(4):
         q_ts, qdd, qd, q = integrate_torque(evs, ts, j, n, n)
@@ -134,7 +146,7 @@ def test_trajectories(n_trials):
     n = 400
     trial_len = 300
 
-    evs, ts = run_simulation(n=n, n_trials=n_trials, trial_len=trial_len)
+    evs, ts = run_simulation(n, trial_len, n_trials)
 
     trjs = compute_trajectories(evs, ts, n, trial_len, n_trials)
 
@@ -148,19 +160,24 @@ def test_trajectories(n_trials):
     plt.show()
 
 
+def get_reference(n, trial_len, n_trials):
+    evs, ts = run_simulation(n, trial_len, n_trials, 0.0)
+    trjs = compute_trajectories(evs, ts, n, trial_len, n_trials)
+
+    ref_mean, ref_std = get_final_x(trjs)
+    return ref_mean, ref_std
+
+
 def test_prism(n_trials, prism_values):
     n = 400
     trial_len = 300
 
-    evs, ts = run_simulation(n=n, n_trials=n_trials, prism=0.0)
-    trjs = compute_trajectories(evs, ts, n, trial_len, n_trials)
-
-    ref_mean, ref_std = get_final_x(trjs)
+    ref_mean, ref_std = get_reference(n, trial_len, n_trials)
     deltas = [0.0]
     stds = [ref_std]
 
     for prism in prism_values:
-        evs, ts = run_simulation(n=n, n_trials=n_trials, prism=prism)
+        evs, ts = run_simulation(n, trial_len, n_trials, prism)
         trjs = compute_trajectories(evs, ts, n, trial_len, n_trials)
 
         mean, std = get_final_x(trjs)
@@ -173,10 +190,35 @@ def test_prism(n_trials, prism_values):
     plt.show()
 
 
+def test_learning():
+    n = 400
+    trial_len = 300
+    prism = 25.0
+
+    ref_mean, ref_std = get_reference(n, trial_len, 5)
+
+    evs, ts = run_simulation(n, trial_len, 1, prism)
+    trjs = compute_trajectories(evs, ts, n, trial_len, 1)
+
+    mean, std = get_final_x(trjs)
+
+    error = mean - ref_mean
+    print(error)
+
+    evs, ts = run_simulation(n, trial_len, 1, prism, error)
+    trjs = compute_trajectories(evs, ts, n, trial_len, 1)
+
+    mean, std = get_final_x(trjs)
+
+    error = mean - ref_mean
+    print(error)
+
+
 def main():
-    test_integration()
-    test_trajectories(10)
-    test_prism(4, [25.0, 50.0, 75.0, 100.0])
+    # test_integration()
+    # test_trajectories(10)
+    # test_prism(4, [25.0, 50.0, 75.0, 100.0])
+    test_learning()
 
 
 if __name__ == '__main__':
