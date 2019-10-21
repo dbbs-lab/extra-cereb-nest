@@ -8,10 +8,10 @@ import trajectories
 nest.Install("extracerebmodule")
 
 
-def run_simulation(trial_len=300, n_trials=1, prism=0.0, n=400):
-    nest.ResetKernel()
-    trajectories.save_file(prism, trial_len)
+trial_len = 300
 
+
+def new_planner(n, prism=0.0):
     planner = nest.Create(
         "planner_neuron",
         n=n,
@@ -23,7 +23,10 @@ def run_simulation(trial_len=300, n_trials=1, prism=0.0, n=400):
             "gain_rate": 1.0,
             }
         )
+    return planner
 
+
+def new_cortex(n):
     cortex = nest.Create(
         "cortex_neuron",
         n=n,
@@ -38,18 +41,37 @@ def run_simulation(trial_len=300, n_trials=1, prism=0.0, n=400):
     for i, neuron in enumerate(cortex):
         nest.SetStatus([neuron], {"joint_id": i // (n//4),
                                   "fiber_id": i % (n//4)})
+    return cortex
 
-    nest.Connect(planner, cortex, 'one_to_one')
 
-    spikedetector = nest.Create("spike_detector")
-    nest.Connect(cortex, spikedetector)
+def new_spike_detector(pop):
+    spike_detector = nest.Create("spike_detector")
+    nest.Connect(pop, spike_detector)
+    return spike_detector
 
-    nest.Simulate(trial_len * n_trials)
 
-    dSD = nest.GetStatus(spikedetector, keys="events")[0]
+def get_spike_events(spike_detector):
+    dSD = nest.GetStatus(spike_detector, keys="events")[0]
     evs = dSD["senders"]
     ts = dSD["times"]
 
+    return evs, ts
+
+
+def run_simulation(n=400, n_trials=1, prism=0.0):
+    nest.ResetKernel()
+    trajectories.save_file(prism, trial_len)
+
+    planner = new_planner(n, prism)
+    cortex = new_cortex(n)
+
+    nest.Connect(planner, cortex, 'one_to_one')
+
+    spike_detector = new_spike_detector(cortex)
+
+    nest.Simulate(trial_len * n_trials)
+
+    evs, ts = get_spike_events(spike_detector)
     return evs, ts
 
 
@@ -73,7 +95,7 @@ def integrate_torque(evs, ts, j_id, pop_size, pop_offset):
     return j_ts, torques, vel, pos
 
 
-def cut_trial(evs, ts, trial_len, trial_i, norm_times=False):
+def cut_trial(evs, ts, trial_i, norm_times=False):
     trial_events = [
         (ev, t)
         for (ev, t) in zip(evs, ts)
@@ -86,11 +108,11 @@ def cut_trial(evs, ts, trial_len, trial_i, norm_times=False):
         return np.array(trial_evs), np.array(trial_ts)
 
 
-def compute_trajectories(evs, ts, n, trial_len, n_trials):
+def compute_trajectories(evs, ts, n, n_trials):
     trjs = []
 
     for i in range(n_trials):
-        trial_evs, trial_ts = cut_trial(evs, ts, trial_len, i)
+        trial_evs, trial_ts = cut_trial(evs, ts, i)
         q_ts, qdd, qd, q = integrate_torque(trial_evs, trial_ts, 1, n, n)
         trjs.append([q_ts, q])
 
@@ -117,9 +139,8 @@ def test_integration():
         axs[2, j].plot(qdd[:, j])
 
     n = 400
-    trial_len = 300
 
-    evs, ts = run_simulation(n=n, trial_len=trial_len)
+    evs, ts = run_simulation(n)
 
     for j in range(4):
         q_ts, qdd, qd, q = integrate_torque(evs, ts, j, n, n)
@@ -132,11 +153,10 @@ def test_integration():
 
 def test_trajectories(n_trials):
     n = 400
-    trial_len = 300
 
-    evs, ts = run_simulation(n=n, n_trials=n_trials, trial_len=trial_len)
+    evs, ts = run_simulation(n, n_trials)
 
-    trjs = compute_trajectories(evs, ts, n, trial_len, n_trials)
+    trjs = compute_trajectories(evs, ts, n, n_trials)
 
     # mean, std = get_final_x(trjs)
     # print("Mean:", mean)
@@ -148,20 +168,24 @@ def test_trajectories(n_trials):
     plt.show()
 
 
-def test_prism(n_trials, prism_values):
-    n = 400
-    trial_len = 300
-
-    evs, ts = run_simulation(n=n, n_trials=n_trials, prism=0.0)
-    trjs = compute_trajectories(evs, ts, n, trial_len, n_trials)
+def get_reference(n, n_trials):
+    evs, ts = run_simulation(n, n_trials, 0.0)
+    trjs = compute_trajectories(evs, ts, n, n_trials)
 
     ref_mean, ref_std = get_final_x(trjs)
+    return ref_mean, ref_std
+
+
+def test_prism(n_trials, prism_values):
+    n = 400
+
+    ref_mean, ref_std = get_reference(n, n_trials)
     deltas = [0.0]
     stds = [ref_std]
 
     for prism in prism_values:
-        evs, ts = run_simulation(n=n, n_trials=n_trials, prism=prism)
-        trjs = compute_trajectories(evs, ts, n, trial_len, n_trials)
+        evs, ts = run_simulation(n, n_trials, prism)
+        trjs = compute_trajectories(evs, ts, n, n_trials)
 
         mean, std = get_final_x(trjs)
 
@@ -173,10 +197,77 @@ def test_prism(n_trials, prism_values):
     plt.show()
 
 
+def simulate_closed_loop(n=400, prism=0.0, sensory_error=0.0):
+    n_trials = 1
+    nest.ResetKernel()
+    trajectories.save_file(prism, trial_len)
+
+    planner = new_planner(n, prism)
+    cortex = new_cortex(n)
+
+    nest.Connect(planner, cortex, 'one_to_one')
+
+    sensory_io = nest.Create(
+        'poisson_generator',
+        n=n*2,
+        params={"rate": 0.0}
+    )
+    s_io_minus = sensory_io[:n]
+    s_io_plus = sensory_io[n:]
+    s_io_rate = 100.0 * abs(sensory_error)
+
+    if sensory_error > 0:
+        nest.SetStatus(s_io_plus, {"rate": s_io_rate})
+    else:
+        nest.SetStatus(s_io_minus, {"rate": s_io_rate})
+
+    # Closing loop without cerebellum
+    nest.Connect(s_io_plus, cortex, 'one_to_one', syn_spec={'weight': -1.0})
+    nest.Connect(s_io_minus, cortex, 'one_to_one', syn_spec={'weight': 1.0})
+
+    ctx_detector = new_spike_detector(cortex)
+    s_io_detector = new_spike_detector(sensory_io)
+
+    nest.Simulate(trial_len * n_trials)
+
+    io_evs, io_ts = get_spike_events(s_io_detector)
+    plt.scatter(io_ts, io_evs, marker='.')
+    plt.ylim(min(sensory_io), max(sensory_io))
+    plt.show()
+
+    evs, ts = get_spike_events(ctx_detector)
+    return evs, ts
+
+
+def get_error(evs, ts, n, ref_mean):
+    trjs = compute_trajectories(evs, ts, n, 1)
+
+    mean, std = get_final_x(trjs)
+
+    error = mean - ref_mean
+    return error
+
+
+def test_learning():
+    n = 400
+    prism = 25.0
+
+    ref_mean, ref_std = get_reference(n, 5)
+
+    evs, ts = run_simulation(n, 1, prism)
+    error = get_error(evs, ts, n, ref_mean)
+    print(error)
+
+    evs, ts = simulate_closed_loop(n, prism, error)
+    error = get_error(evs, ts, n, ref_mean)
+    print(error)
+
+
 def main():
-    test_integration()
-    test_trajectories(10)
-    test_prism(4, [25.0, 50.0, 75.0, 100.0])
+    # test_integration()
+    # test_trajectories(10)
+    # test_prism(4, [25.0, 50.0, 75.0, 100.0])
+    test_learning()
 
 
 if __name__ == '__main__':
