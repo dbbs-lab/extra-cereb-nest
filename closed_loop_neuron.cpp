@@ -52,13 +52,13 @@ mynest::closed_loop_neuron::Parameters_::Parameters_()
   : Gain_( 1.0 )      // adimensional
   , NumDCN_( 1.0 )    // Number of DCN as output
   , FirstDCN_( 1.0 )
+  , Positive_( true ) // Positive or Negative Neuron
+  , ToFile_( false )  // If it writes the OutputFile.dat
   , Protocol_( 0.0 )
   , USOnset_( 0.0 )
   , USDuration_( 0.0 )
   , TrialDuration_( 0.0 )
   , Phase_( 0.0 )
-  , Positive_( true ) // Positive or Negative Neuron
-  , ToFile_( false )  // If it writes the OutputFile.dat
 {
 }
 
@@ -105,9 +105,9 @@ mynest::closed_loop_neuron::Parameters_::set( const DictionaryDatum& d )
 
 mynest::closed_loop_neuron::closed_loop_neuron()
   : Archiving_Node()
+  , B_()
   , P_()
   , V_()
-  , B_()
 {
 }
 
