@@ -157,7 +157,6 @@ mynest::cortex_neuron::update( nest::Time const& origin, const long from, const 
 
   double time_res = nest::Time::get_resolution().get_ms();  // 0.1
   long buf_size = V_.buffer_size_;
-  long trial_ticks = (double)P_.trial_length_ / time_res;
   librandom::RngPtr rng = nest::kernel().rng_manager.get_rng( get_thread() );
 
   double spike_count = 0;
@@ -174,11 +173,8 @@ mynest::cortex_neuron::update( nest::Time const& origin, const long from, const 
   for ( long lag = from; lag < to; ++lag )
   {
     long tick = origin.get_steps() + lag;
-    // int n_spikes = B_.out_spikes_[tick % trial_ticks];
-    double t = tick * time_res * 1e-3;  // [s]
     double sdev = P_.rbf_sdev_;
     double mean = P_.fiber_id_;
-    // double desired = P_.fibers_per_joint_ * ( 0.5 + 0.5*std::sin( 2*M_PI * t ) );
     double desired = P_.fibers_per_joint_ * B_.traj_[P_.joint_id_][(int)(tick * time_res) % P_.trial_length_];
 
     double baseline_rate;
@@ -204,7 +200,7 @@ mynest::cortex_neuron::update( nest::Time const& origin, const long from, const 
       nest::kernel().event_delivery_manager.send( *this, se, lag );
 
       // set the spike times, respecting the multiplicity
-      for ( unsigned long i = 0; i < n_spikes; i++ )
+      for ( long i = 0; i < n_spikes; i++ )
       {
         set_spiketime( nest::Time::step( tick ) );
       }
@@ -217,8 +213,6 @@ mynest::cortex_neuron::handle( nest::SpikeEvent& e )
 {
   nest::Time stamp = e.get_stamp();
   long tick = stamp.get_steps();
-
-  long buf_size = V_.buffer_size_;
 
   double map_value = 0.0;
   if ( B_.in_spikes_.count(tick) )
