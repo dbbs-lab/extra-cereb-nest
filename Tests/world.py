@@ -207,6 +207,7 @@ def simulate_closed_loop(n=400, prism=0.0, sensory_error=0.0):
 
     nest.Connect(planner, cortex, 'one_to_one')
 
+    # Sensory error
     sensory_io = nest.Create(
         'poisson_generator',
         n=n*2,
@@ -220,6 +221,57 @@ def simulate_closed_loop(n=400, prism=0.0, sensory_error=0.0):
         nest.SetStatus(s_io_plus, {"rate": s_io_rate})
     else:
         nest.SetStatus(s_io_minus, {"rate": s_io_rate})
+    #
+
+    # Motor error
+    motor_io = nest.Create(
+        'spike_generator',
+        n=n*2,
+    )
+    m_io_minus = motor_io[:n]
+    m_io_plus = motor_io[n:]
+
+    q_in = np.array((10.0, -10.0, -90.0, 170.0))
+    q_out = np.array((0.0, 0.0, 0.0,   0.0))
+
+    q, qd, qdd = trajectories.jtraj(q_in, q_out, trial_len)
+    template = qdd[:, 1]
+    template /= max(abs(template))
+    template = template * 0.5 + 0.5
+
+    def gen_spikes(template):
+        m_io_freqs = 0.1 * template * sensory_error
+
+        m_io_ts = []
+        for t, f in enumerate(m_io_freqs):
+            n_spikes = np.random.poisson(f)
+            if n_spikes:
+                m_io_ts.append(float(t+1))
+
+        # fig, axs = plt.subplots(2)
+        # axs[0].plot(m_io_freqs)
+        # axs[1].scatter(m_io_ts, np.ones(len(m_io_ts)), marker='.')
+        # plt.show()
+        return m_io_ts
+
+    m_io_ts = gen_spikes(template)
+
+    # fig, axs = plt.subplots(2)
+    # axs[0].plot(template * sensory_error)
+    # axs[1].scatter(m_io_ts, np.ones(len(m_io_ts)), marker='.')
+    # plt.show()
+
+    if sensory_error > 0:
+        for cell in m_io_plus:
+            nest.SetStatus([cell], {'spike_times': gen_spikes(template)})
+        for cell in m_io_minus:
+            nest.SetStatus([cell], {'spike_times': gen_spikes(1.0 - template)})
+    else:
+        for cell in m_io_plus:
+            nest.SetStatus([cell], {'spike_times': gen_spikes(1.0 - template)})
+        for cell in m_io_minus:
+            nest.SetStatus([cell], {'spike_times': gen_spikes(template)})
+    #
 
     # Closing loop without cerebellum
     nest.Connect(s_io_plus, cortex, 'one_to_one', syn_spec={'weight': -1.0})
@@ -227,12 +279,18 @@ def simulate_closed_loop(n=400, prism=0.0, sensory_error=0.0):
 
     ctx_detector = new_spike_detector(cortex)
     s_io_detector = new_spike_detector(sensory_io)
+    m_io_detector = new_spike_detector(motor_io)
 
     nest.Simulate(trial_len * n_trials)
 
     io_evs, io_ts = get_spike_events(s_io_detector)
     plt.scatter(io_ts, io_evs, marker='.')
     plt.ylim(min(sensory_io), max(sensory_io))
+    plt.show()
+
+    io_evs, io_ts = get_spike_events(m_io_detector)
+    plt.scatter(io_ts, io_evs, marker='.')
+    plt.ylim(min(motor_io), max(motor_io))
     plt.show()
 
     evs, ts = get_spike_events(ctx_detector)
