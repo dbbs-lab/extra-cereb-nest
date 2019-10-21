@@ -19,7 +19,7 @@ def new_planner(n, prism=0.0):
             "trial_length": trial_len,
             "target": 0.0,
             "prism_deviation": prism,
-            "baseline_rate": 10.0,
+            "baseline_rate": 30.0,
             "gain_rate": 1.0,
             }
         )
@@ -214,7 +214,7 @@ def simulate_closed_loop(n=400, prism=0.0, sensory_error=0.0):
     )
     s_io_minus = sensory_io[:n]
     s_io_plus = sensory_io[n:]
-    s_io_rate = 100.0 * abs(sensory_error)
+    s_io_rate = 10.0 * abs(sensory_error)
 
     if sensory_error > 0:
         nest.SetStatus(s_io_plus, {"rate": s_io_rate})
@@ -261,6 +261,9 @@ def test_learning():
     evs, ts = simulate_closed_loop(n, prism, error)
     error = get_error(evs, ts, n, ref_mean)
     print(error)
+
+    # plt.scatter(ts, evs, marker='.')
+    # plt.show()
 
 
 def main():
