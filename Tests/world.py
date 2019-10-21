@@ -207,22 +207,35 @@ def simulate_closed_loop(n=400, prism=0.0, sensory_error=0.0):
 
     nest.Connect(planner, cortex, 'one_to_one')
 
-    sensory_error_pop = nest.Create(
+    sensory_io = nest.Create(
         'poisson_generator',
-        n=n,
-        params={"rate": 100.0 * sensory_error}
+        n=n*2,
+        params={"rate": 0.0}
     )
+    s_io_minus = sensory_io[:n]
+    s_io_plus = sensory_io[n:]
+    s_io_rate = 100.0 * abs(sensory_error)
 
-    nest.Connect(
-        sensory_error_pop, cortex,
-        'one_to_one', syn_spec={'weight': -1 * np.sign(sensory_error)}
-    )
+    if sensory_error > 0:
+        nest.SetStatus(s_io_plus, {"rate": s_io_rate})
+    else:
+        nest.SetStatus(s_io_minus, {"rate": s_io_rate})
 
-    spike_detector = new_spike_detector(cortex)
+    # Closing loop without cerebellum
+    nest.Connect(s_io_plus, cortex, 'one_to_one', syn_spec={'weight': -1.0})
+    nest.Connect(s_io_minus, cortex, 'one_to_one', syn_spec={'weight': 1.0})
+
+    ctx_detector = new_spike_detector(cortex)
+    s_io_detector = new_spike_detector(sensory_io)
 
     nest.Simulate(trial_len * n_trials)
 
-    evs, ts = get_spike_events(spike_detector)
+    io_evs, io_ts = get_spike_events(s_io_detector)
+    plt.scatter(io_ts, io_evs, marker='.')
+    plt.ylim(min(sensory_io), max(sensory_io))
+    plt.show()
+
+    evs, ts = get_spike_events(ctx_detector)
     return evs, ts
 
 
@@ -251,9 +264,9 @@ def test_learning():
 
 
 def main():
-    test_integration()
-    test_trajectories(10)
-    test_prism(4, [25.0, 50.0, 75.0, 100.0])
+    # test_integration()
+    # test_trajectories(10)
+    # test_prism(4, [25.0, 50.0, 75.0, 100.0])
     test_learning()
 
 
