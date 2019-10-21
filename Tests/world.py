@@ -8,10 +8,10 @@ import trajectories
 nest.Install("extracerebmodule")
 
 
-def run_simulation(n=400, trial_len=300, n_trials=1, prism=0.0, sensory_error=None):
-    nest.ResetKernel()
-    trajectories.save_file(prism, trial_len)
+trial_len = 300
 
+
+def new_planner(n, trial_len, prism=0.0):
     planner = nest.Create(
         "planner_neuron",
         n=n,
@@ -23,7 +23,10 @@ def run_simulation(n=400, trial_len=300, n_trials=1, prism=0.0, sensory_error=No
             "gain_rate": 1.0,
             }
         )
+    return planner
 
+
+def new_cortex(n, trial_len):
     cortex = nest.Create(
         "cortex_neuron",
         n=n,
@@ -38,30 +41,37 @@ def run_simulation(n=400, trial_len=300, n_trials=1, prism=0.0, sensory_error=No
     for i, neuron in enumerate(cortex):
         nest.SetStatus([neuron], {"joint_id": i // (n//4),
                                   "fiber_id": i % (n//4)})
+    return cortex
 
-    nest.Connect(planner, cortex, 'one_to_one')
 
-    if sensory_error:
-        sensory_error_pop = nest.Create(
-            'poisson_generator',
-            n=n,
-            params={"rate": 100.0 * sensory_error}
-        )
+def new_spike_detector(pop):
+    spike_detector = nest.Create("spike_detector")
+    nest.Connect(pop, spike_detector)
+    return spike_detector
 
-        nest.Connect(
-            sensory_error_pop, cortex,
-            'one_to_one', syn_spec={'weight': -1 * np.sign(sensory_error)}
-        )
 
-    spikedetector = nest.Create("spike_detector")
-    nest.Connect(cortex, spikedetector)
-
-    nest.Simulate(trial_len * n_trials)
-
-    dSD = nest.GetStatus(spikedetector, keys="events")[0]
+def get_spike_events(spike_detector):
+    dSD = nest.GetStatus(spike_detector, keys="events")[0]
     evs = dSD["senders"]
     ts = dSD["times"]
 
+    return evs, ts
+
+
+def run_simulation(n=400, trial_len=300, n_trials=1, prism=0.0):
+    nest.ResetKernel()
+    trajectories.save_file(prism, trial_len)
+
+    planner = new_planner(n, trial_len, prism)
+    cortex = new_cortex(n, trial_len)
+
+    nest.Connect(planner, cortex, 'one_to_one')
+
+    spike_detector = new_spike_detector(cortex)
+
+    nest.Simulate(trial_len * n_trials)
+
+    evs, ts = get_spike_events(spike_detector)
     return evs, ts
 
 
@@ -129,7 +139,6 @@ def test_integration():
         axs[2, j].plot(qdd[:, j])
 
     n = 400
-    trial_len = 300
 
     evs, ts = run_simulation(n, trial_len)
 
@@ -144,7 +153,6 @@ def test_integration():
 
 def test_trajectories(n_trials):
     n = 400
-    trial_len = 300
 
     evs, ts = run_simulation(n, trial_len, n_trials)
 
@@ -170,7 +178,6 @@ def get_reference(n, trial_len, n_trials):
 
 def test_prism(n_trials, prism_values):
     n = 400
-    trial_len = 300
 
     ref_mean, ref_std = get_reference(n, trial_len, n_trials)
     deltas = [0.0]
@@ -190,27 +197,56 @@ def test_prism(n_trials, prism_values):
     plt.show()
 
 
+def simulate_closed_loop(n=400, trial_len=300, prism=0.0, sensory_error=0.0):
+    n_trials = 1
+    nest.ResetKernel()
+    trajectories.save_file(prism, trial_len)
+
+    planner = new_planner(n, trial_len, prism)
+    cortex = new_cortex(n, trial_len)
+
+    nest.Connect(planner, cortex, 'one_to_one')
+
+    sensory_error_pop = nest.Create(
+        'poisson_generator',
+        n=n,
+        params={"rate": 100.0 * sensory_error}
+    )
+
+    nest.Connect(
+        sensory_error_pop, cortex,
+        'one_to_one', syn_spec={'weight': -1 * np.sign(sensory_error)}
+    )
+
+    spike_detector = new_spike_detector(cortex)
+
+    nest.Simulate(trial_len * n_trials)
+
+    evs, ts = get_spike_events(spike_detector)
+    return evs, ts
+
+
+def get_error(evs, ts, n, ref_mean):
+    trjs = compute_trajectories(evs, ts, n, trial_len, 1)
+
+    mean, std = get_final_x(trjs)
+
+    error = mean - ref_mean
+    return error
+
+
 def test_learning():
     n = 400
-    trial_len = 300
     prism = 25.0
 
     ref_mean, ref_std = get_reference(n, trial_len, 5)
 
     evs, ts = run_simulation(n, trial_len, 1, prism)
-    trjs = compute_trajectories(evs, ts, n, trial_len, 1)
-
-    mean, std = get_final_x(trjs)
-
-    error = mean - ref_mean
+    error = get_error(evs, ts, n, ref_mean)
     print(error)
 
-    evs, ts = run_simulation(n, trial_len, 1, prism, error)
-    trjs = compute_trajectories(evs, ts, n, trial_len, 1)
-
-    mean, std = get_final_x(trjs)
-
-    error = mean - ref_mean
+    evs, ts = simulate_closed_loop(n, trial_len, prism, error)
+    error = get_error(evs, ts, n, ref_mean)
     print(error)
 
 
