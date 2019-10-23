@@ -216,19 +216,22 @@ def create_sensory_io(n, sensory_error):
 
 
 def create_motor_io(n, sensory_error):
-    def make_template():
+    def make_template(upside=False):
         q_in = np.array((10.0, -10.0, -90.0, 170.0))
         q_out = np.array((0.0, 0.0, 0.0, 0.0))
 
         q, qd, qdd = trajectories.jtraj(q_in, q_out, trial_len)
         template = qdd[:, 1]
         template /= max(abs(template))
-        template = template * 0.5 + 0.5
 
+        if upside:
+            template = -template
+
+        template = np.clip(template, 0.0, np.max(template))
         return template
 
     def gen_spikes(template):
-        m_io_freqs = 0.01 * template * sensory_error
+        m_io_freqs = 0.01 * template * abs(sensory_error)
 
         m_io_ts = []
         for t, f in enumerate(m_io_freqs):
@@ -242,18 +245,19 @@ def create_motor_io(n, sensory_error):
     m_io_minus = motor_io[:n]
     m_io_plus = motor_io[n:]
 
-    template = make_template()
+    template_p = make_template()
+    template_m = make_template(upside=True)
 
     if sensory_error > 0:
         for cell in m_io_plus:
-            nest.SetStatus([cell], {'spike_times': gen_spikes(template)})
+            nest.SetStatus([cell], {'spike_times': gen_spikes(template_p)})
         for cell in m_io_minus:
-            nest.SetStatus([cell], {'spike_times': gen_spikes(1.0 - template)})
+            nest.SetStatus([cell], {'spike_times': gen_spikes(template_m)})
     else:
         for cell in m_io_plus:
-            nest.SetStatus([cell], {'spike_times': gen_spikes(1.0 - template)})
+            nest.SetStatus([cell], {'spike_times': gen_spikes(template_m)})
         for cell in m_io_minus:
-            nest.SetStatus([cell], {'spike_times': gen_spikes(template)})
+            nest.SetStatus([cell], {'spike_times': gen_spikes(template_p)})
 
     return motor_io, m_io_minus, m_io_plus
 
