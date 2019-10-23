@@ -197,17 +197,7 @@ def test_prism(n_trials, prism_values):
     plt.show()
 
 
-def simulate_closed_loop(n=400, prism=0.0, sensory_error=0.0):
-    n_trials = 1
-    nest.ResetKernel()
-    trajectories.save_file(prism, trial_len)
-
-    planner = new_planner(n, prism)
-    cortex = new_cortex(n)
-
-    nest.Connect(planner, cortex, 'one_to_one')
-
-    # Sensory error
+def create_sensory_io(n, sensory_error):
     sensory_io = nest.Create(
         'poisson_generator',
         n=n*2,
@@ -221,26 +211,24 @@ def simulate_closed_loop(n=400, prism=0.0, sensory_error=0.0):
         nest.SetStatus(s_io_plus, {"rate": s_io_rate})
     else:
         nest.SetStatus(s_io_minus, {"rate": s_io_rate})
-    #
 
-    # Motor error
-    motor_io = nest.Create(
-        'spike_generator',
-        n=n*2,
-    )
-    m_io_minus = motor_io[:n]
-    m_io_plus = motor_io[n:]
+    return sensory_io, s_io_minus, s_io_plus
 
-    q_in = np.array((10.0, -10.0, -90.0, 170.0))
-    q_out = np.array((0.0, 0.0, 0.0,   0.0))
 
-    q, qd, qdd = trajectories.jtraj(q_in, q_out, trial_len)
-    template = qdd[:, 1]
-    template /= max(abs(template))
-    template = template * 0.5 + 0.5
+def create_motor_io(n, sensory_error):
+    def make_template():
+        q_in = np.array((10.0, -10.0, -90.0, 170.0))
+        q_out = np.array((0.0, 0.0, 0.0, 0.0))
+
+        q, qd, qdd = trajectories.jtraj(q_in, q_out, trial_len)
+        template = qdd[:, 1]
+        template /= max(abs(template))
+        template = template * 0.5 + 0.5
+
+        return template
 
     def gen_spikes(template):
-        m_io_freqs = 0.1 * template * sensory_error
+        m_io_freqs = 0.01 * template * sensory_error
 
         m_io_ts = []
         for t, f in enumerate(m_io_freqs):
@@ -248,18 +236,13 @@ def simulate_closed_loop(n=400, prism=0.0, sensory_error=0.0):
             if n_spikes:
                 m_io_ts.append(float(t+1))
 
-        # fig, axs = plt.subplots(2)
-        # axs[0].plot(m_io_freqs)
-        # axs[1].scatter(m_io_ts, np.ones(len(m_io_ts)), marker='.')
-        # plt.show()
         return m_io_ts
 
-    m_io_ts = gen_spikes(template)
+    motor_io = nest.Create('spike_generator', n=n*2)
+    m_io_minus = motor_io[:n]
+    m_io_plus = motor_io[n:]
 
-    # fig, axs = plt.subplots(2)
-    # axs[0].plot(template * sensory_error)
-    # axs[1].scatter(m_io_ts, np.ones(len(m_io_ts)), marker='.')
-    # plt.show()
+    template = make_template()
 
     if sensory_error > 0:
         for cell in m_io_plus:
@@ -271,8 +254,21 @@ def simulate_closed_loop(n=400, prism=0.0, sensory_error=0.0):
             nest.SetStatus([cell], {'spike_times': gen_spikes(1.0 - template)})
         for cell in m_io_minus:
             nest.SetStatus([cell], {'spike_times': gen_spikes(template)})
-    #
 
+    return motor_io, m_io_minus, m_io_plus
+
+
+def simulate_closed_loop(n=400, prism=0.0, sensory_error=0.0):
+    nest.ResetKernel()
+    trajectories.save_file(prism, trial_len)
+
+    planner = new_planner(n, prism)
+    cortex = new_cortex(n)
+
+    sensory_io, s_io_minus, s_io_plus = create_sensory_io(n, sensory_error)
+    motor_io, m_io_minus, m_io_plus = create_motor_io(n, sensory_error)
+
+    nest.Connect(planner, cortex, 'one_to_one')
     # Closing loop without cerebellum
     nest.Connect(s_io_plus, cortex, 'one_to_one', syn_spec={'weight': -1.0})
     nest.Connect(s_io_minus, cortex, 'one_to_one', syn_spec={'weight': 1.0})
@@ -281,20 +277,21 @@ def simulate_closed_loop(n=400, prism=0.0, sensory_error=0.0):
     s_io_detector = new_spike_detector(sensory_io)
     m_io_detector = new_spike_detector(motor_io)
 
-    nest.Simulate(trial_len * n_trials)
+    nest.Simulate(trial_len)
 
-    io_evs, io_ts = get_spike_events(s_io_detector)
-    plt.scatter(io_ts, io_evs, marker='.')
+    s_io_evs, s_io_ts = get_spike_events(s_io_detector)
+    plt.scatter(s_io_ts, s_io_evs, marker='.')
     plt.ylim(min(sensory_io), max(sensory_io))
     plt.show()
 
-    io_evs, io_ts = get_spike_events(m_io_detector)
-    plt.scatter(io_ts, io_evs, marker='.')
+    m_io_evs, m_io_ts = get_spike_events(m_io_detector)
+    plt.scatter(m_io_ts, m_io_evs, marker='.')
     plt.ylim(min(motor_io), max(motor_io))
     plt.show()
 
-    evs, ts = get_spike_events(ctx_detector)
-    return evs, ts
+    ctx_evs, ctx_ts = get_spike_events(ctx_detector)
+
+    return ctx_evs, ctx_ts
 
 
 def get_error(evs, ts, n, ref_mean):
