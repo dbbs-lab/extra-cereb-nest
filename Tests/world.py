@@ -205,7 +205,9 @@ def create_sensory_io(n, sensory_error):
     )
     s_io_minus = sensory_io[:n]
     s_io_plus = sensory_io[n:]
-    s_io_rate = 10.0 * abs(sensory_error)
+
+    # TODO: tune scale factor
+    s_io_rate = 1.0 * abs(sensory_error)
 
     if sensory_error > 0:
         nest.SetStatus(s_io_plus, {"rate": s_io_rate})
@@ -231,7 +233,8 @@ def create_motor_io(n, sensory_error):
         return template
 
     def gen_spikes(template):
-        m_io_freqs = 0.01 * template * abs(sensory_error)
+        # TODO: tune scale factor
+        m_io_freqs = 0.001 * template * abs(sensory_error)
 
         m_io_ts = []
         for t, f in enumerate(m_io_freqs):
@@ -303,7 +306,10 @@ def get_error(evs, ts, n, ref_mean):
 
     mean, std = get_final_x(trjs)
 
-    error = mean - ref_mean
+    # ref_mean = 10°
+    final_deg = mean * 10.0 / ref_mean
+
+    error = final_deg - 10  # error in degrees
     return error
 
 
@@ -315,11 +321,11 @@ def test_learning():
 
     evs, ts = run_simulation(n, 1, prism)
     error = get_error(evs, ts, n, ref_mean)
-    print(error)
+    print("Error before:", error)
 
     evs, ts = simulate_closed_loop(n, prism, error)
     error = get_error(evs, ts, n, ref_mean)
-    print(error)
+    print("Error after:", error)
 
     # plt.scatter(ts, evs, marker='.')
     # plt.show()
