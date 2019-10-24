@@ -296,17 +296,25 @@ def simulate_closed_loop(n=400, prism=0.0, sensory_error=0.0):
 
     ctx_detector = new_spike_detector(cortex)
     j1_detector = new_spike_detector(ctx_j1)
+
     s_io_detector = new_spike_detector(sensory_io)
+    s_io_p_detector = new_spike_detector(s_io_plus)
+    s_io_m_detector = new_spike_detector(s_io_minus)
+
     m_io_detector = new_spike_detector(motor_io)
+    m_io_p_detector = new_spike_detector(m_io_plus)
+    m_io_m_detector = new_spike_detector(m_io_minus)
 
     nest.Simulate(trial_len)
 
     s_io_evs, s_io_ts = get_spike_events(s_io_detector)
-    print('sIO rate:', get_rate(s_io_detector, sensory_io))
+    print('sIO+ rate:', get_rate(s_io_p_detector, s_io_plus))
+    print('sIO- rate:', get_rate(s_io_m_detector, s_io_minus))
     plot_spikes(s_io_evs, s_io_ts, sensory_io)
 
     m_io_evs, m_io_ts = get_spike_events(m_io_detector)
-    print('mIO rate:', get_rate(m_io_detector, motor_io))
+    print('mIO+ rate:', get_rate(m_io_p_detector, m_io_plus))
+    print('mIO- rate:', get_rate(m_io_m_detector, m_io_minus))
     plot_spikes(m_io_evs, m_io_ts, motor_io)
 
     ctx_evs, ctx_ts = get_spike_events(ctx_detector)
