@@ -288,6 +288,18 @@ def create_motor_io(n, sensory_error):
     return motor_io, m_io_minus, m_io_plus
 
 
+def integrate_motor_io(evs, ts, io_plus, io_minus):
+    pop_size = len(io_plus) + len(io_minus)
+    torques = [
+        (1.0 if ev in io_plus else -1.0)
+        for ev in evs
+    ]
+    vel = np.array(list(accumulate(torques))) / pop_size
+    pos = np.array(list(accumulate(vel))) / pop_size
+
+    return pos[-1]
+
+
 def simulate_closed_loop(n=400, prism=0.0, sensory_error=0.0):
     nest.ResetKernel()
     trajectories.save_file(prism, trial_len)
@@ -327,6 +339,9 @@ def simulate_closed_loop(n=400, prism=0.0, sensory_error=0.0):
     print('mIO- rate:', get_rate(m_io_m_detector, m_io_minus))
     plot_spikes(m_io_evs, m_io_ts, motor_io)
 
+    m_io_pos = integrate_motor_io(m_io_evs, m_io_ts, m_io_plus, m_io_minus)
+    print("Motor IO contribution to position:", m_io_pos)
+
     ctx_evs, ctx_ts = get_spike_events(ctx_detector)
     print('j1 rate:', get_rate(j1_detector, ctx_j1))
     plot_spikes(ctx_evs, ctx_ts, cortex)
@@ -354,8 +369,8 @@ def test_learning():
 def main():
     # test_integration()
     # test_trajectories(10)
-    test_prism(4, range(-25, 30, 5))
-    # test_learning()
+    # test_prism(4, range(-25, 30, 5))
+    test_learning()
 
 
 if __name__ == '__main__':
