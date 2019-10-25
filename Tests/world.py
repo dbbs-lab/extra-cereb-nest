@@ -18,7 +18,7 @@ def new_planner(n, prism=0.0):
         params={
             "trial_length": trial_len,
             "target": 0.0,
-            "prism_deviation": prism,
+            "prism_deviation": float(prism),
             "baseline_rate": 30.0,
             "gain_rate": 1.0,
             }
@@ -189,24 +189,34 @@ def get_reference(n, n_trials):
     return ref_mean, ref_std
 
 
+def get_error(evs, ts, n, ref_mean, n_trials=1):
+    trjs = compute_trajectories(evs, ts, n, n_trials)
+
+    mean, std = get_final_x(trjs)
+
+    # ref_mean = 10°
+    final_deg = mean * 10.0 / ref_mean
+    std_deg = std * 10.0 / ref_mean
+
+    error = final_deg - 10  # error in degrees
+    return error, std_deg
+
+
 def test_prism(n_trials, prism_values):
     n = 400
 
     ref_mean, ref_std = get_reference(n, n_trials)
-    deltas = [0.0]
-    stds = [ref_std]
+    errors = []
+    stds = []
 
     for prism in prism_values:
         evs, ts = run_simulation(n, n_trials, prism)
-        trjs = compute_trajectories(evs, ts, n, n_trials)
+        error, std_deg = get_error(evs, ts, n, ref_mean, n_trials)
 
-        mean, std = get_final_x(trjs)
+        errors.append(error)
+        stds.append(std_deg)
 
-        delta_x = mean - ref_mean
-        deltas.append(delta_x)
-        stds.append(std)
-
-    plt.errorbar([0.0] + list(prism_values), deltas, stds)
+    plt.errorbar(prism_values, errors, stds)
     plt.show()
 
 
@@ -324,18 +334,6 @@ def simulate_closed_loop(n=400, prism=0.0, sensory_error=0.0):
     return ctx_evs, ctx_ts
 
 
-def get_error(evs, ts, n, ref_mean):
-    trjs = compute_trajectories(evs, ts, n, 1)
-
-    mean, std = get_final_x(trjs)
-
-    # ref_mean = 10°
-    final_deg = mean * 10.0 / ref_mean
-
-    error = final_deg - 10  # error in degrees
-    return error
-
-
 def test_learning():
     n = 400
     prism = 25.0
@@ -343,10 +341,10 @@ def test_learning():
     ref_mean, ref_std = get_reference(n, 5)
 
     evs, ts = run_simulation(n, 1, prism)
-    error = get_error(evs, ts, n, ref_mean)
+    error, _ = get_error(evs, ts, n, ref_mean)
 
     evs, ts = simulate_closed_loop(n, prism, error)
-    error_after = get_error(evs, ts, n, ref_mean)
+    error_after, _ = get_error(evs, ts, n, ref_mean)
 
     print()
     print("Error before:", error)
@@ -356,8 +354,8 @@ def test_learning():
 def main():
     # test_integration()
     # test_trajectories(10)
-    # test_prism(4, [25.0, 50.0, 75.0, 100.0])
-    test_learning()
+    test_prism(4, range(-25, 30, 5))
+    # test_learning()
 
 
 if __name__ == '__main__':
