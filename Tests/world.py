@@ -3,8 +3,7 @@ import nest
 from itertools import accumulate
 import matplotlib.pyplot as plt
 
-from world_populations import create_planner, create_cortex, \
-                              create_sensory_io, create_motor_io
+from world_populations import Planner, Cortex, SensoryIO, MotorIO
 import trajectories
 
 nest.Install("extracerebmodule")
@@ -17,8 +16,8 @@ def run_simulation(n=400, n_trials=1, prism=0.0):
     nest.ResetKernel()
     trajectories.save_file(prism, trial_len)
 
-    planner = create_planner(n, prism)
-    cortex = create_cortex(n)
+    planner = Planner(n, prism)
+    cortex = Cortex(n)
 
     planner.connect(cortex)
 
@@ -27,7 +26,7 @@ def run_simulation(n=400, n_trials=1, prism=0.0):
     return cortex.get_events()
 
 
-def integrate_torque(evs, ts, j_id, pop_size, pop_offset):
+def integrate_cortex(evs, ts, j_id, pop_size, pop_offset):
     j_evs = []
     j_ts = []
     pop_size = pop_size // 4
@@ -47,25 +46,36 @@ def integrate_torque(evs, ts, j_id, pop_size, pop_offset):
     return j_ts, torques, vel, pos
 
 
-def cut_trial(evs, ts, trial_i, norm_times=False):
-    trial_events = [
-        (ev, t)
-        for (ev, t) in zip(evs, ts)
-        if trial_len*trial_i <= t < trial_len*(trial_i+1)
+def integrate_mIO(evs, ts, io_plus, io_minus):
+    pop_size = len(io_plus) + len(io_minus)
+    torques = [
+        (1.0 if ev in io_plus else -1.0)
+        for ev in evs
     ]
-    trial_evs, trial_ts = zip(*trial_events)
-    if norm_times:
-        return np.array(trial_evs), np.array(trial_ts) - trial_len*trial_i
-    else:
-        return np.array(trial_evs), np.array(trial_ts)
+    vel = np.array(list(accumulate(torques))) / pop_size
+    pos = np.array(list(accumulate(vel))) / pop_size
+
+    return ts, torques, vel, pos
 
 
-def compute_trajectories(evs, ts, n, n_trials):
+def compute_trajectories(evs, ts, n, n_trials=1):
+    def cut_trial(evs, ts, trial_i, norm_times=False):
+        trial_events = [
+            (ev, t)
+            for (ev, t) in zip(evs, ts)
+            if trial_len*trial_i <= t < trial_len*(trial_i+1)
+        ]
+        trial_evs, trial_ts = zip(*trial_events)
+        if norm_times:
+            return np.array(trial_evs), np.array(trial_ts) - trial_len*trial_i
+        else:
+            return np.array(trial_evs), np.array(trial_ts)
+
     trjs = []
 
     for i in range(n_trials):
         trial_evs, trial_ts = cut_trial(evs, ts, i)
-        q_ts, qdd, qd, q = integrate_torque(trial_evs, trial_ts, 1, n, n)
+        q_ts, qdd, qd, q = integrate_cortex(trial_evs, trial_ts, 1, n, n)
         trjs.append([q_ts, q])
 
     return trjs
@@ -84,11 +94,7 @@ def get_reference(n, n_trials):
     return ref_mean, ref_std
 
 
-def get_error(evs, ts, n, ref_mean, n_trials=1):
-    trjs = compute_trajectories(evs, ts, n, n_trials)
-
-    mean, std = get_final_x(trjs)
-
+def get_error(ref_mean, mean, std=0.0):
     # ref_mean = 10°
     final_deg = mean * 10.0 / ref_mean
     std_deg = std * 10.0 / ref_mean
@@ -97,33 +103,21 @@ def get_error(evs, ts, n, ref_mean, n_trials=1):
     return error, std_deg
 
 
-def integrate_motor_io(evs, ts, io_plus, io_minus):
-    pop_size = len(io_plus) + len(io_minus)
-    torques = [
-        (1.0 if ev in io_plus else -1.0)
-        for ev in evs
-    ]
-    vel = np.array(list(accumulate(torques))) / pop_size
-    pos = np.array(list(accumulate(vel))) / pop_size
-
-    return pos[-1]
-
-
 def simulate_closed_loop(n=400, prism=0.0, sensory_error=0.0):
     nest.ResetKernel()
     trajectories.save_file(prism, trial_len)
 
-    planner = create_planner(n, prism)
-    cortex = create_cortex(n)
+    planner = Planner(n, prism)
+    cortex = Cortex(n)
     j1 = cortex.slice(n//4, n//2)
 
-    sIO = create_sensory_io(n, sensory_error)
-    sIOm = sIO.slice(0, n)
-    sIOp = sIO.slice(n)
+    sIO = SensoryIO(n, sensory_error)
+    sIOm = sIO.minus
+    sIOp = sIO.plus
 
-    mIO = create_motor_io(n, sensory_error)
-    mIOm = mIO.slice(0, n)
-    mIOp = mIO.slice(n)
+    mIO = MotorIO(n, sensory_error)
+    mIOm = mIO.minus
+    mIOp = mIO.plus
 
     planner.connect(cortex)
     # Closing loop without cerebellum
@@ -142,8 +136,9 @@ def simulate_closed_loop(n=400, prism=0.0, sensory_error=0.0):
     mIO.plot_spikes()
 
     m_io_evs, m_io_ts = mIO.get_events()
-    m_io_pos = integrate_motor_io(m_io_evs, m_io_ts, mIOp.pop, mIOm.pop)
-    print("Motor IO contribution to position:", m_io_pos)
+    _, qdd, qd, q = integrate_mIO(m_io_evs, m_io_ts, mIOp.pop, mIOm.pop)
+    mIO_pos = q[-1]
+    print("Motor IO contribution to position:", mIO_pos)
 
     print('j1 rate:', j1.get_rate())
     cortex.plot_spikes()
@@ -158,10 +153,16 @@ def test_learning():
     ref_mean, ref_std = get_reference(n, 5)
 
     evs, ts = run_simulation(n, 1, prism)
-    error, _ = get_error(evs, ts, n, ref_mean)
+    trjs = compute_trajectories(evs, ts, n)
+
+    mean, std = get_final_x(trjs)
+    error, _ = get_error(ref_mean, mean, std)
 
     evs, ts = simulate_closed_loop(n, prism, error)
-    error_after, _ = get_error(evs, ts, n, ref_mean)
+    trjs = compute_trajectories(evs, ts, n)
+
+    mean, std = get_final_x(trjs)
+    error_after, _ = get_error(ref_mean, mean, std)
 
     print()
     print("Error before:", error)
@@ -187,7 +188,7 @@ def plot_integration():
     evs, ts = run_simulation(n)
 
     for j in range(4):
-        q_ts, qdd, qd, q = integrate_torque(evs, ts, j, n, n)
+        q_ts, qdd, qd, q = integrate_cortex(evs, ts, j, n, n)
         axs[3, j].scatter(q_ts, qdd, marker='.')
         axs[4, j].plot(q_ts, qd)
         axs[5, j].plot(q_ts, q)
@@ -199,12 +200,7 @@ def plot_trajectories(n_trials):
     n = 400
 
     evs, ts = run_simulation(n, n_trials)
-
     trjs = compute_trajectories(evs, ts, n, n_trials)
-
-    # mean, std = get_final_x(trjs)
-    # print("Mean:", mean)
-    # print("Std:", std)
 
     for q_ts, q in trjs:
         plt.plot(q_ts, q)
@@ -221,7 +217,10 @@ def plot_prism(n_trials, prism_values):
 
     for prism in prism_values:
         evs, ts = run_simulation(n, n_trials, prism)
-        error, std_deg = get_error(evs, ts, n, ref_mean, n_trials)
+        trjs = compute_trajectories(evs, ts, n, n_trials)
+
+        mean, std = get_final_x(trjs)
+        error, std_deg = get_error(ref_mean, mean, std)
 
         errors.append(error)
         stds.append(std_deg)
