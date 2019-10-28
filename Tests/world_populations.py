@@ -1,0 +1,107 @@
+import numpy as np
+import nest
+from population_view import PopView
+import trajectories
+
+trial_len = 300
+
+
+def create_planner(n, prism=0.0):
+    pop = nest.Create(
+        "planner_neuron",
+        n=n,
+        params={
+            "trial_length": trial_len,
+            "target": 0.0,
+            "prism_deviation": float(prism),
+            "baseline_rate": 30.0,
+            "gain_rate": 1.0,
+            }
+        )
+    return PopView(pop)
+
+
+def create_cortex(n):
+    pop = nest.Create(
+        "cortex_neuron",
+        n=n,
+        params={
+            "trial_length": trial_len,
+            "fibers_per_joint": n//4,
+            "rbf_sdev": 15.0,
+            "baseline_rate": 10.0,
+            }
+        )
+
+    for i, neuron in enumerate(pop):
+        nest.SetStatus([neuron], {"joint_id": i // (n//4),
+                                  "fiber_id": i % (n//4)})
+    return PopView(pop)
+
+
+def create_sensory_io(n, sensory_error):
+    sensory_io = nest.Create(
+        'poisson_generator',
+        n=n*2,
+        params={"rate": 0.0}
+    )
+    s_io_minus = sensory_io[:n]
+    s_io_plus = sensory_io[n:]
+
+    # TODO: tune scale factor
+    s_io_rate = 1.0 * abs(sensory_error)
+
+    if sensory_error > 0:
+        nest.SetStatus(s_io_plus, {"rate": s_io_rate})
+    else:
+        nest.SetStatus(s_io_minus, {"rate": s_io_rate})
+
+    return PopView(sensory_io)
+
+
+def create_motor_io(n, sensory_error):
+    def make_template(upside=False):
+        q_in = np.array((10.0, -10.0, -90.0, 170.0))
+        q_out = np.array((0.0, 0.0, 0.0, 0.0))
+
+        q, qd, qdd = trajectories.jtraj(q_in, q_out, trial_len)
+        template = qdd[:, 1]
+        template /= max(abs(template))
+
+        if upside:
+            template = -template
+
+        template = np.clip(template, 0.0, np.max(template))
+        return template
+
+    def gen_spikes(template):
+        # TODO: tune scale factor
+        m_io_freqs = 0.001 * template * abs(sensory_error)
+
+        m_io_ts = []
+        for t, f in enumerate(m_io_freqs):
+            n_spikes = np.random.poisson(f)
+            if n_spikes:
+                m_io_ts.append(float(t+1))
+
+        return m_io_ts
+
+    motor_io = nest.Create('spike_generator', n=n*2)
+    m_io_minus = motor_io[:n]
+    m_io_plus = motor_io[n:]
+
+    template_p = make_template()
+    template_m = make_template(upside=True)
+
+    if sensory_error > 0:
+        for cell in m_io_plus:
+            nest.SetStatus([cell], {'spike_times': gen_spikes(template_p)})
+        for cell in m_io_minus:
+            nest.SetStatus([cell], {'spike_times': gen_spikes(template_m)})
+    else:
+        for cell in m_io_plus:
+            nest.SetStatus([cell], {'spike_times': gen_spikes(template_m)})
+        for cell in m_io_minus:
+            nest.SetStatus([cell], {'spike_times': gen_spikes(template_p)})
+
+    return PopView(motor_io)
