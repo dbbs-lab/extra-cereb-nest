@@ -76,50 +76,6 @@ def get_final_x(trjs):
     return np.mean(xs), np.std(xs)
 
 
-def test_integration():
-    prism = 0.0
-    duration = 300
-    q_in = np.array((10.0, -10.0, -90.0, 170.0))
-    q_out = np.array((0.0, prism, 0.0,   0.0))
-
-    q, qd, qdd = trajectories.jtraj(q_in, q_out, duration)
-    fig, axs = plt.subplots(6, 4)
-
-    for j in range(4):
-        axs[0, j].plot(q[:, j])
-        axs[1, j].plot(qd[:, j])
-        axs[2, j].plot(qdd[:, j])
-
-    n = 400
-
-    evs, ts = run_simulation(n)
-
-    for j in range(4):
-        q_ts, qdd, qd, q = integrate_torque(evs, ts, j, n, n)
-        axs[3, j].scatter(q_ts, qdd, marker='.')
-        axs[4, j].plot(q_ts, qd)
-        axs[5, j].plot(q_ts, q)
-
-    plt.show()
-
-
-def test_trajectories(n_trials):
-    n = 400
-
-    evs, ts = run_simulation(n, n_trials)
-
-    trjs = compute_trajectories(evs, ts, n, n_trials)
-
-    # mean, std = get_final_x(trjs)
-    # print("Mean:", mean)
-    # print("Std:", std)
-
-    for q_ts, q in trjs:
-        plt.plot(q_ts, q)
-
-    plt.show()
-
-
 def get_reference(n, n_trials):
     evs, ts = run_simulation(n, n_trials, 0.0)
     trjs = compute_trajectories(evs, ts, n, n_trials)
@@ -139,24 +95,6 @@ def get_error(evs, ts, n, ref_mean, n_trials=1):
 
     error = final_deg - 10  # error in degrees
     return error, std_deg
-
-
-def test_prism(n_trials, prism_values):
-    n = 400
-
-    ref_mean, ref_std = get_reference(n, n_trials)
-    errors = []
-    stds = []
-
-    for prism in prism_values:
-        evs, ts = run_simulation(n, n_trials, prism)
-        error, std_deg = get_error(evs, ts, n, ref_mean, n_trials)
-
-        errors.append(error)
-        stds.append(std_deg)
-
-    plt.errorbar(prism_values, errors, stds)
-    plt.show()
 
 
 def integrate_motor_io(evs, ts, io_plus, io_minus):
@@ -230,10 +168,72 @@ def test_learning():
     print("Error after:", error_after)
 
 
+def plot_integration():
+    prism = 0.0
+    duration = 300
+    q_in = np.array((10.0, -10.0, -90.0, 170.0))
+    q_out = np.array((0.0, prism, 0.0,   0.0))
+
+    q, qd, qdd = trajectories.jtraj(q_in, q_out, duration)
+    fig, axs = plt.subplots(6, 4)
+
+    for j in range(4):
+        axs[0, j].plot(q[:, j])
+        axs[1, j].plot(qd[:, j])
+        axs[2, j].plot(qdd[:, j])
+
+    n = 400
+
+    evs, ts = run_simulation(n)
+
+    for j in range(4):
+        q_ts, qdd, qd, q = integrate_torque(evs, ts, j, n, n)
+        axs[3, j].scatter(q_ts, qdd, marker='.')
+        axs[4, j].plot(q_ts, qd)
+        axs[5, j].plot(q_ts, q)
+
+    plt.show()
+
+
+def plot_trajectories(n_trials):
+    n = 400
+
+    evs, ts = run_simulation(n, n_trials)
+
+    trjs = compute_trajectories(evs, ts, n, n_trials)
+
+    # mean, std = get_final_x(trjs)
+    # print("Mean:", mean)
+    # print("Std:", std)
+
+    for q_ts, q in trjs:
+        plt.plot(q_ts, q)
+
+    plt.show()
+
+
+def plot_prism(n_trials, prism_values):
+    n = 400
+
+    ref_mean, ref_std = get_reference(n, n_trials)
+    errors = []
+    stds = []
+
+    for prism in prism_values:
+        evs, ts = run_simulation(n, n_trials, prism)
+        error, std_deg = get_error(evs, ts, n, ref_mean, n_trials)
+
+        errors.append(error)
+        stds.append(std_deg)
+
+    plt.errorbar(prism_values, errors, stds)
+    plt.show()
+
+
 def main():
-    # test_integration()
-    # test_trajectories(10)
-    # test_prism(4, range(-25, 30, 5))
+    # plot_integration()
+    # plot_trajectories(10)
+    # plot_prism(4, range(-25, 30, 5))
     test_learning()
 
 
