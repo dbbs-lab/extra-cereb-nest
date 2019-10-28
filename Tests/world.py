@@ -3,6 +3,7 @@ import nest
 from itertools import accumulate
 import matplotlib.pyplot as plt
 
+from population_view import PopView
 import trajectories
 
 nest.Install("extracerebmodule")
@@ -12,7 +13,7 @@ trial_len = 300
 
 
 def new_planner(n, prism=0.0):
-    planner = nest.Create(
+    pop = nest.Create(
         "planner_neuron",
         n=n,
         params={
@@ -23,11 +24,11 @@ def new_planner(n, prism=0.0):
             "gain_rate": 1.0,
             }
         )
-    return planner
+    return PopView(pop)
 
 
 def new_cortex(n):
-    cortex = nest.Create(
+    pop = nest.Create(
         "cortex_neuron",
         n=n,
         params={
@@ -38,37 +39,10 @@ def new_cortex(n):
             }
         )
 
-    for i, neuron in enumerate(cortex):
+    for i, neuron in enumerate(pop):
         nest.SetStatus([neuron], {"joint_id": i // (n//4),
                                   "fiber_id": i % (n//4)})
-    return cortex
-
-
-def new_spike_detector(pop):
-    spike_detector = nest.Create("spike_detector")
-    nest.Connect(pop, spike_detector)
-    return spike_detector
-
-
-def get_spike_events(spike_detector):
-    dSD = nest.GetStatus(spike_detector, keys="events")[0]
-    evs = dSD["senders"]
-    ts = dSD["times"]
-
-    return evs, ts
-
-
-def plot_spikes(evs, ts, pop=None):
-    plt.scatter(ts, evs, marker='.')
-    if pop:
-        plt.ylim(min(pop), max(pop))
-    plt.show()
-
-
-def get_rate(spike_detector, pop):
-    rate = nest.GetStatus(spike_detector, keys="n_events")[0] * 1e3 / trial_len
-    rate /= len(pop)
-    return rate
+    return PopView(pop)
 
 
 def run_simulation(n=400, n_trials=1, prism=0.0):
@@ -78,14 +52,11 @@ def run_simulation(n=400, n_trials=1, prism=0.0):
     planner = new_planner(n, prism)
     cortex = new_cortex(n)
 
-    nest.Connect(planner, cortex, 'one_to_one')
-
-    spike_detector = new_spike_detector(cortex)
+    planner.connect(cortex)
 
     nest.Simulate(trial_len * n_trials)
 
-    evs, ts = get_spike_events(spike_detector)
-    return evs, ts
+    return cortex.get_events()
 
 
 def integrate_torque(evs, ts, j_id, pop_size, pop_offset):
@@ -237,7 +208,7 @@ def create_sensory_io(n, sensory_error):
     else:
         nest.SetStatus(s_io_minus, {"rate": s_io_rate})
 
-    return sensory_io, s_io_minus, s_io_plus
+    return PopView(sensory_io)
 
 
 def create_motor_io(n, sensory_error):
@@ -285,7 +256,7 @@ def create_motor_io(n, sensory_error):
         for cell in m_io_minus:
             nest.SetStatus([cell], {'spike_times': gen_spikes(template_p)})
 
-    return motor_io, m_io_minus, m_io_plus
+    return PopView(motor_io)
 
 
 def integrate_motor_io(evs, ts, io_plus, io_minus):
@@ -306,47 +277,40 @@ def simulate_closed_loop(n=400, prism=0.0, sensory_error=0.0):
 
     planner = new_planner(n, prism)
     cortex = new_cortex(n)
-    ctx_j1 = cortex[n//4:n//2]
+    j1 = cortex.slice(n//4, n//2)
 
-    sensory_io, s_io_minus, s_io_plus = create_sensory_io(n, sensory_error)
-    motor_io, m_io_minus, m_io_plus = create_motor_io(n, sensory_error)
+    sIO = create_sensory_io(n, sensory_error)
+    sIOm = sIO.slice(0, n)
+    sIOp = sIO.slice(n)
 
-    nest.Connect(planner, cortex, 'one_to_one')
+    mIO = create_motor_io(n, sensory_error)
+    mIOm = mIO.slice(0, n)
+    mIOp = mIO.slice(n)
+
+    planner.connect(cortex)
     # Closing loop without cerebellum
-    nest.Connect(s_io_plus, cortex, 'one_to_one', syn_spec={'weight': -1.0})
-    nest.Connect(s_io_minus, cortex, 'one_to_one', syn_spec={'weight': 1.0})
-
-    ctx_detector = new_spike_detector(cortex)
-    j1_detector = new_spike_detector(ctx_j1)
-
-    s_io_detector = new_spike_detector(sensory_io)
-    s_io_p_detector = new_spike_detector(s_io_plus)
-    s_io_m_detector = new_spike_detector(s_io_minus)
-
-    m_io_detector = new_spike_detector(motor_io)
-    m_io_p_detector = new_spike_detector(m_io_plus)
-    m_io_m_detector = new_spike_detector(m_io_minus)
+    sIOp.connect(cortex, w=-1.0)
+    sIOm.connect(cortex, w=+1.0)
 
     nest.Simulate(trial_len)
 
-    s_io_evs, s_io_ts = get_spike_events(s_io_detector)
-    print('sIO+ rate:', get_rate(s_io_p_detector, s_io_plus))
-    print('sIO- rate:', get_rate(s_io_m_detector, s_io_minus))
-    plot_spikes(s_io_evs, s_io_ts, sensory_io)
+    s_io_evs, s_io_ts = sIO.get_events()
+    print('sIO+ rate:', sIOp.get_rate())
+    print('sIO- rate:', sIOm.get_rate())
+    sIO.plot_spikes()
 
-    m_io_evs, m_io_ts = get_spike_events(m_io_detector)
-    print('mIO+ rate:', get_rate(m_io_p_detector, m_io_plus))
-    print('mIO- rate:', get_rate(m_io_m_detector, m_io_minus))
-    plot_spikes(m_io_evs, m_io_ts, motor_io)
+    print('mIO+ rate:', mIOp.get_rate())
+    print('mIO- rate:', mIOm.get_rate())
+    mIO.plot_spikes()
 
-    m_io_pos = integrate_motor_io(m_io_evs, m_io_ts, m_io_plus, m_io_minus)
+    m_io_evs, m_io_ts = mIO.get_events()
+    m_io_pos = integrate_motor_io(m_io_evs, m_io_ts, mIOp.pop, mIOm.pop)
     print("Motor IO contribution to position:", m_io_pos)
 
-    ctx_evs, ctx_ts = get_spike_events(ctx_detector)
-    print('j1 rate:', get_rate(j1_detector, ctx_j1))
-    plot_spikes(ctx_evs, ctx_ts, cortex)
+    print('j1 rate:', j1.get_rate())
+    cortex.plot_spikes()
 
-    return ctx_evs, ctx_ts
+    return cortex.get_events()
 
 
 def test_learning():
