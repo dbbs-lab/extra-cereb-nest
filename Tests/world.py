@@ -23,27 +23,8 @@ def run_simulation(n=400, n_trials=1, prism=0.0):
 
     nest.Simulate(trial_len * n_trials)
 
-    return cortex.get_events()
-
-
-def integrate_cortex(evs, ts, j_id, pop_size, pop_offset):
-    j_evs = []
-    j_ts = []
-    pop_size = pop_size // 4
-
-    for ev, t in zip(evs, ts):
-        fiber_id = ev - pop_offset - 1
-        joint_id = fiber_id // pop_size
-
-        if joint_id == j_id:
-            j_evs.append(fiber_id % pop_size)
-            j_ts.append(t)
-
-    torques = [2.0*ev / pop_size - 1.0 for ev in j_evs]
-    vel = np.array(list(accumulate(torques))) / pop_size
-    pos = np.array(list(accumulate(vel))) / pop_size
-
-    return j_ts, torques, vel, pos
+    cortex.integrate(n_trials)
+    return cortex
 
 
 def integrate_mIO(evs, ts, io_plus, io_minus):
@@ -58,40 +39,10 @@ def integrate_mIO(evs, ts, io_plus, io_minus):
     return ts, torques, vel, pos
 
 
-def compute_trajectories(evs, ts, n, n_trials=1):
-    def cut_trial(evs, ts, trial_i, norm_times=False):
-        trial_events = [
-            (ev, t)
-            for (ev, t) in zip(evs, ts)
-            if trial_len*trial_i <= t < trial_len*(trial_i+1)
-        ]
-        trial_evs, trial_ts = zip(*trial_events)
-        if norm_times:
-            return np.array(trial_evs), np.array(trial_ts) - trial_len*trial_i
-        else:
-            return np.array(trial_evs), np.array(trial_ts)
-
-    trjs = []
-
-    for i in range(n_trials):
-        trial_evs, trial_ts = cut_trial(evs, ts, i)
-        q_ts, qdd, qd, q = integrate_cortex(trial_evs, trial_ts, 1, n, n)
-        trjs.append([q_ts, q])
-
-    return trjs
-
-
-def get_final_x(trjs):
-    xs = [q[-1] for (q_ts, q) in trjs]
-    return np.mean(xs), np.std(xs)
-
-
 def get_reference(n, n_trials):
-    evs, ts = run_simulation(n, n_trials, 0.0)
-    trjs = compute_trajectories(evs, ts, n, n_trials)
-
-    ref_mean, ref_std = get_final_x(trjs)
-    return ref_mean, ref_std
+    cortex = run_simulation(n, n_trials, 0.0)
+    mean, std = cortex.get_final_x()
+    return mean, std
 
 
 def get_error(ref_mean, mean, std=0.0):
@@ -143,7 +94,8 @@ def simulate_closed_loop(n=400, prism=0.0, sensory_error=0.0):
     print('j1 rate:', j1.get_rate())
     cortex.plot_spikes()
 
-    return cortex.get_events()
+    cortex.integrate()
+    return cortex
 
 
 def test_learning():
@@ -152,16 +104,13 @@ def test_learning():
 
     ref_mean, ref_std = get_reference(n, 5)
 
-    evs, ts = run_simulation(n, 1, prism)
-    trjs = compute_trajectories(evs, ts, n)
+    cortex = run_simulation(n, 1, prism)
 
-    mean, std = get_final_x(trjs)
+    mean, std = cortex.get_final_x()
     error, _ = get_error(ref_mean, mean, std)
 
-    evs, ts = simulate_closed_loop(n, prism, error)
-    trjs = compute_trajectories(evs, ts, n)
-
-    mean, std = get_final_x(trjs)
+    cortex = simulate_closed_loop(n, prism, error)
+    mean, std = cortex.get_final_x()
     error_after, _ = get_error(ref_mean, mean, std)
 
     print()
@@ -185,10 +134,10 @@ def plot_integration():
 
     n = 400
 
-    evs, ts = run_simulation(n)
+    cortex = run_simulation(n)
 
     for j in range(4):
-        q_ts, qdd, qd, q = integrate_cortex(evs, ts, j, n, n)
+        q_ts, qdd, qd, q = cortex.joints[j].states[0]
         axs[3, j].scatter(q_ts, qdd, marker='.')
         axs[4, j].plot(q_ts, qd)
         axs[5, j].plot(q_ts, q)
@@ -196,13 +145,29 @@ def plot_integration():
     plt.show()
 
 
+def test_integrate_cortex():
+    n = 400
+    prism = 0.0
+    n_trials = 5
+
+    nest.ResetKernel()
+    trajectories.save_file(prism, trial_len)
+
+    planner = Planner(n, prism)
+    cortex = Cortex(n)
+    planner.connect(cortex)
+
+    nest.Simulate(trial_len * n_trials)
+    cortex.integrate(n_trials, plot=True)
+
+
 def plot_trajectories(n_trials):
     n = 400
 
-    evs, ts = run_simulation(n, n_trials)
-    trjs = compute_trajectories(evs, ts, n, n_trials)
+    cortex = run_simulation(n, n_trials)
 
-    for q_ts, q in trjs:
+    for i in range(n_trials):
+        q_ts, _, _, q = cortex.joints[1].states[i]
         plt.plot(q_ts, q)
 
     plt.show()
@@ -216,12 +181,10 @@ def plot_prism(n_trials, prism_values):
     stds = []
 
     for prism in prism_values:
-        evs, ts = run_simulation(n, n_trials, prism)
-        trjs = compute_trajectories(evs, ts, n, n_trials)
+        cortex = run_simulation(n, n_trials, prism)
+        mean, std = cortex.get_final_x()
 
-        mean, std = get_final_x(trjs)
         error, std_deg = get_error(ref_mean, mean, std)
-
         errors.append(error)
         stds.append(std_deg)
 
@@ -230,9 +193,10 @@ def plot_prism(n_trials, prism_values):
 
 
 def main():
-    # plot_integration()
-    # plot_trajectories(10)
-    # plot_prism(4, range(-25, 30, 5))
+    plot_integration()
+    test_integrate_cortex()
+    plot_trajectories(10)
+    plot_prism(4, range(-25, 30, 5))
     test_learning()
 
 

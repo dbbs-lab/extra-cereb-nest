@@ -1,4 +1,5 @@
 import numpy as np
+import matplotlib.pyplot as plt
 from itertools import accumulate
 import nest
 from population_view import PopView
@@ -23,6 +24,14 @@ class Planner(PopView):
         super().__init__(pop)
 
 
+class JointFibers(PopView):
+    def __init__(self, pop):
+        super().__init__(pop)
+        self.states = []  # (ts, qdd, qd, q) * n_trials
+        self.x_mean = 0.0
+        self.x_std = 0.0
+
+
 class Cortex(PopView):
     def __init__(self, n):
         pop = nest.Create(
@@ -41,6 +50,82 @@ class Cortex(PopView):
                                       "fiber_id": i % (n//4)})
 
         super().__init__(pop)
+
+        self.joints = []
+        for i in range(4):
+            begin = i * n//4
+            end = (i+1) * n//4
+            self.joints.append(JointFibers(self.pop[begin:end]))
+
+    def integrate_joint(self, evs, ts, j_id):
+        pop_size = len(self.pop)
+        pop_offset = min(self.pop)
+        j_evs = []
+        j_ts = []
+        pop_size = pop_size // 4
+
+        for ev, t in zip(evs, ts):
+            fiber_id = ev - pop_offset - 1
+            joint_id = fiber_id // pop_size
+
+            if joint_id == j_id:
+                j_evs.append(fiber_id % pop_size)
+                j_ts.append(t)
+
+        torques = [2.0*ev / pop_size - 1.0 for ev in j_evs]
+        vel = np.array(list(accumulate(torques))) / pop_size
+        pos = np.array(list(accumulate(vel))) / pop_size
+
+        return j_ts, torques, vel, pos
+
+    def get_final_x(self):
+        mean = self.joints[1].x_mean
+        std = self.joints[1].x_std
+        return mean, std
+
+    def integrate(self, n_trials=1, plot=False):
+        def cut_trial(evs, ts, i, norm_times=True):
+            evts = zip(evs, ts)
+            trial_evts = [
+                (ev, t) for (ev, t) in evts
+                if trial_len*i <= t < trial_len*(i+1)
+            ]
+            trial_evs, trial_ts = zip(*trial_evts)
+
+            trial_evs = np.array(trial_evs)
+            trial_ts = np.array(trial_ts)
+
+            if norm_times:
+                trial_ts -= trial_len*i
+
+            return trial_evs, trial_ts
+
+        for j, joint in enumerate(self.joints):
+            evs, ts = joint.get_events()
+
+            joint.states = []  # (ts, qdd, qd, q) * n_trials
+            xs = []  # position final value
+
+            for i in range(n_trials):
+                trial_evs, trial_ts = cut_trial(evs, ts, i)
+                q_ts, qdd, qd, q = self.integrate_joint(trial_evs, trial_ts, j)
+                xs.append(q[-1])
+
+                joint.states.append([q_ts, qdd, qd, q])
+
+            joint.x_mean = np.mean(xs)
+            joint.x_std = np.std(xs)
+
+        if plot:
+            fig, axs = plt.subplots(3, 4)
+            for j, joint in enumerate(self.joints):
+                for i in range(n_trials):
+                    q_ts, qdd, qd, q = joint.states[i]
+                    axs[0, j].plot(q_ts, q)
+                    axs[1, j].plot(q_ts, qd)
+                    axs[2, j].plot(q_ts, qdd)
+
+            plt.show()
 
 
 class SensoryIO(PopView):
