@@ -145,7 +145,7 @@ def plot_integration():
     plt.show()
 
 
-def test_integrate_cortex():
+def plot_integrate_cortex():
     n = 400
     prism = 0.0
     n_trials = 5
@@ -192,12 +192,58 @@ def plot_prism(n_trials, prism_values):
     plt.show()
 
 
+def plot_mIO_correction(n_trials, prism_values):
+    n = 400
+
+    ref_mean, ref_std = get_reference(n, n_trials)
+
+    corrections = []
+
+    for prism in prism_values:
+        cortex = run_simulation(n, n_trials, prism)
+
+        mean, std = cortex.get_final_x()
+        error, _ = get_error(ref_mean, mean, std)
+        print("Error:", error)
+
+        nest.ResetKernel()
+        trajectories.save_file(prism, trial_len)
+
+        planner = Planner(n, prism)
+        cortex = Cortex(n)
+
+        mIO = MotorIO(n, error)
+        mIOm = mIO.minus
+        mIOp = mIO.plus
+
+        planner.connect(cortex)
+
+        nest.Simulate(trial_len)  # Single trial
+
+        print('mIO+ rate:', mIOp.get_rate())
+        print('mIO- rate:', mIOm.get_rate())
+
+        m_io_evs, m_io_ts = mIO.get_events()
+        _, qdd, qd, q = integrate_mIO(m_io_evs, m_io_ts, mIOp.pop, mIOm.pop)
+        if len(q) > 0:
+            mIO_pos = q[-1]
+            print("Motor IO contribution to position:", mIO_pos)
+            corrections.append(mIO_pos)
+        else:
+            print("No mIO activity")
+            corrections.append(0.0)
+
+    plt.plot(prism_values, corrections)
+    plt.show()
+
+
 def main():
-    plot_integration()
-    test_integrate_cortex()
-    plot_trajectories(10)
-    plot_prism(4, range(-25, 30, 5))
-    test_learning()
+    # plot_integration()
+    # plot_integrate_cortex()
+    # plot_trajectories(10)
+    # plot_prism(4, range(-25, 30, 5))
+    # test_learning()
+    plot_mIO_correction(5, range(-10, 25, 5))
 
 
 if __name__ == '__main__':
