@@ -8,6 +8,26 @@ import trajectories
 trial_len = 300
 
 
+def cut_trial(evs, ts, i, norm_times=True):
+    evts = zip(evs, ts)
+    trial_evts = [
+        (ev, t) for (ev, t) in evts
+        if trial_len*i <= t < trial_len*(i+1)
+    ]
+    if len(trial_evts) == 0:
+        return [], []
+
+    trial_evs, trial_ts = zip(*trial_evts)
+
+    trial_evs = np.array(trial_evs)
+    trial_ts = np.array(trial_ts)
+
+    if norm_times:
+        trial_ts -= trial_len*i
+
+    return trial_evs, trial_ts
+
+
 class Planner(PopView):
     def __init__(self, n, prism=0.0):
         pop = nest.Create(
@@ -84,22 +104,6 @@ class Cortex(PopView):
         return mean, std
 
     def integrate(self, n_trials=1, plot=False):
-        def cut_trial(evs, ts, i, norm_times=True):
-            evts = zip(evs, ts)
-            trial_evts = [
-                (ev, t) for (ev, t) in evts
-                if trial_len*i <= t < trial_len*(i+1)
-            ]
-            trial_evs, trial_ts = zip(*trial_evts)
-
-            trial_evs = np.array(trial_evs)
-            trial_ts = np.array(trial_ts)
-
-            if norm_times:
-                trial_ts -= trial_len*i
-
-            return trial_evs, trial_ts
-
         for j, joint in enumerate(self.joints):
             evs, ts = joint.get_events()
 
@@ -202,3 +206,43 @@ class MotorIO(PopView):
 
         self.minus = self.slice(0, n)
         self.plus = self.slice(n)
+
+        self.states = []
+        self.x_mean = 0.0
+        self.x_std = 0.0
+
+    def get_final_x(self):
+        mean = self.x_mean
+        std = self.x_std
+        return mean, std
+
+    def integrate(self, n_trials=1, plot=False):
+        evs, ts = self.get_events()
+
+        self.states = []  # (ts, qdd, qd, q) * n_trials
+        xs = []  # position final value
+
+        if len(evs) == 0:
+            return
+
+        for i in range(n_trials):
+            trial_evs, trial_ts = cut_trial(evs, ts, i)
+
+            pop_size = len(self.pop)
+            torques = [
+                (1.0 if ev in self.plus.pop else -1.0)
+                for ev in trial_evs
+            ]
+            vel = np.array(list(accumulate(torques))) / pop_size
+            pos = np.array(list(accumulate(vel))) / pop_size
+
+            q_ts, qdd, qd, q = trial_ts, torques, vel, pos
+            if len(q) == 0:
+                xs.append(0.0)
+            else:
+                xs.append(q[-1])
+
+            self.states.append([q_ts, qdd, qd, q])
+
+        self.x_mean = np.mean(xs)
+        self.x_std = np.std(xs)
