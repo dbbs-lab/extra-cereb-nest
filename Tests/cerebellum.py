@@ -172,7 +172,7 @@ def create_cerebellum():
                           "multapses": False},
                          PFPC_conn_param)
             A = nest.GetConnections(GR, [PCi])
-            nest.SetStatus(A, {'vt_num': float(i)})
+            nest.SetStatus(A, {'vt_num': i})
     else:
         nest.Connect(GR, PC,
                      {'rule': 'fixed_indegree',
@@ -184,7 +184,7 @@ def create_cerebellum():
         for i, DCNi in enumerate(DCN):
             nest.Connect(MF, [DCNi], 'all_to_all', MFDCN_conn_param)
             A = nest.GetConnections(MF, [DCNi])
-            nest.SetStatus(A, {'vt_num': float(i)})
+            nest.SetStatus(A, {'vt_num': i})
     else:
         nest.Connect(MF, DCN, 'all_to_all', MFDCN_conn_param)
 
