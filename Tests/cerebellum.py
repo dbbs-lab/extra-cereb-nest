@@ -83,15 +83,17 @@ def create_cerebellum():
     w_PFPC = nest.Create('weight_recorder', params=rec_params)
 
     # MFGR
-    MFGR_conn_param = {"model": "static_synapse",
-                       "weight": {'distribution': 'uniform',
-                                  # -> 0.75 GR fire at 7 Hz
-                                  'low': 1.0, 'high': 2.0},
-                       "delay": 1.0}
+    MFGR_conn_dict = {'rule': 'fixed_indegree',
+                      'indegree': 4,
+                      "multapses": False}
 
-    nest.Connect(MF, GR, {'rule': 'fixed_indegree',
-                          'indegree': 4,
-                          "multapses": False}, MFGR_conn_param)
+    MFGR_syn_dict = {"model": "static_synapse",
+                     "weight": {'distribution': 'uniform',
+                                # -> 0.75 GR fire at 7 Hz
+                                'low': 1.0, 'high': 2.0},
+                     "delay": 1.0}
+
+    nest.Connect(MF, GR, MFGR_conn_dict, MFGR_syn_dict)
     #
 
     if PLAST1:
@@ -100,7 +102,10 @@ def create_cerebellum():
         for i, vt_i in enumerate(vt1):
             nest.SetStatus([vt_i], {"vt_num": i})
 
-        # Synapse defaults
+        vt1_syn_dict = {"model": "static_synapse", "weight": 1.0, "delay": 1.0}
+        nest.Connect(IO, vt1, 'one_to_one', vt1_syn_dict)
+        #
+
         nest.SetDefaults('stdp_synapse_sinexp',
                          {"A_minus":   LTD1,
                           "A_plus":    LTP1,
@@ -109,33 +114,26 @@ def create_cerebellum():
                           "vt":        vt1[0],
                           "weight_recorder": w_PFPC[0]})
 
-        # Connection parameters
-        PFPC_conn_param = {"model":  'stdp_synapse_sinexp',
-                           "weight": Init_PFPC,
-                           "delay":  1.0}
-
-        # IO-PC teaching connections
-        nest.Connect(IO, vt1, 'one_to_one', {"model": "static_synapse",
-                                             "weight": 1.0,
-                                             "delay": 1.0})
-        for i, PCi in enumerate(PC):
-            nest.Connect(GR, [PCi],
-                         {'rule': 'fixed_indegree',
+        PFPC_conn_dict = {'rule': 'fixed_indegree',
                           'indegree': int(0.8*GR_number),
-                          "multapses": False},
-                         PFPC_conn_param)
+                          "multapses": False}
+
+        PFPC_syn_dict = {"model":  'stdp_synapse_sinexp',
+                         "weight": Init_PFPC, "delay":  1.0}
+
+        for i, PCi in enumerate(PC):
+            nest.Connect(GR, [PCi], PFPC_conn_dict, PFPC_syn_dict)
             A = nest.GetConnections(GR, [PCi])
             nest.SetStatus(A, {'vt_num': i})
     else:
-        PFPC_conn_param = {"model":  "static_synapse",
-                           "weight": Init_PFPC,
-                           "delay":  1.0}
+        PFPC_conn_dict = {'rule': 'fixed_indegree',
+                          'indegree': int(0.8*GR_number),
+                          "multapses": False}
 
-        nest.Connect(GR, PC,
-                     {'rule': 'fixed_indegree',
-                      'indegree': int(0.8*GR_number),
-                      "multapses": False},
-                     PFPC_conn_param)
+        PFPC_syn_dict = {"model":  "static_synapse",
+                         "weight": Init_PFPC, "delay":  1.0}
+
+        nest.Connect(GR, PC, PFPC_conn_dict, PFPC_syn_dict)
 
     if PLAST2:
         vt2 = nest.Create("volume_transmitter_alberto", DCN_number)
@@ -151,30 +149,27 @@ def create_cerebellum():
                           "Wmax":      0.25,
                           "vt":        vt2[0]})
 
-        MFDCN_conn_param = {"model": 'stdp_synapse_cosexp',
-                            "weight": Init_MFDCN,
-                            "delay": 10.0}
+        MFDCN_syn_dict = {"model": 'stdp_synapse_cosexp',
+                          "weight": Init_MFDCN, "delay": 10.0}
 
         for i, DCNi in enumerate(DCN):
-            nest.Connect(MF, [DCNi], 'all_to_all', MFDCN_conn_param)
+            nest.Connect(MF, [DCNi], 'all_to_all', MFDCN_syn_dict)
             A = nest.GetConnections(MF, [DCNi])
             nest.SetStatus(A, {'vt_num': i})
 
         # PC-DCN inhibitory plastic connections
         # each DCN receives 2 connections from 2 contiguous PC
+        vt2_syn_dict = {"model": "static_synapse", "weight": 1.0, "delay": 1.0}
+
         for P in range(PC_number):
             count_DCN = P // 2
-            nest.Connect([PC[P]], [vt2[count_DCN]], 'one_to_one',
-                         {"model":  "static_synapse",
-                          "weight": 1.0,
-                          "delay":  1.0})
+            nest.Connect([PC[P]], [vt2[count_DCN]], 'one_to_one', vt2_syn_dict)
 
     else:
-        MFDCN_conn_param = {"model":  "static_synapse",
-                            "weight": Init_MFDCN,
-                            "delay":  10.0}
+        MFDCN_syn_dict = {"model":  "static_synapse",
+                          "weight": Init_MFDCN, "delay":  10.0}
 
-        nest.Connect(MF, DCN, 'all_to_all', MFDCN_conn_param)
+        nest.Connect(MF, DCN, 'all_to_all', MFDCN_syn_dict)
 
     if PLAST3:
         nest.SetDefaults('stdp_synapse', {"tau_plus": 30.0,
@@ -186,18 +181,16 @@ def create_cerebellum():
                                           "weight": Init_PCDCN,
                                           "delay": 1.0})
 
-        PCDCN_conn_param = {"model": "stdp_synapse"}
+        PCDCN_syn_dict = {"model": "stdp_synapse"}
     else:
-        PCDCN_conn_param = {"model": "static_synapse",
-                            "weight": Init_PCDCN,
-                            "delay": 1.0}
+        PCDCN_syn_dict = {"model": "static_synapse",
+                          "weight": Init_PCDCN, "delay": 1.0}
 
     # PC-DCN inhibitory plastic connections
     # each DCN receives 2 connections from 2 contiguous PC
     for P in range(PC_number):
         count_DCN = P // 2
-        nest.Connect([PC[P]], [DCN[count_DCN]],
-                     'one_to_one', PCDCN_conn_param)
+        nest.Connect([PC[P]], [DCN[count_DCN]], 'one_to_one', PCDCN_syn_dict)
 
 
 def main():
