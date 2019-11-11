@@ -1,8 +1,20 @@
 import nest
+from contextlib import contextmanager
+from time import time
+
+from world_populations import Planner
+from population_view import PopView
 
 
 nest.Install("cerebmodule")
 nest.Install("extracerebmodule")
+
+
+MF_number = 100
+GR_number = MF_number*100
+PC_number = 72
+IO_number = PC_number
+DCN_number = PC_number//2
 
 
 def create_cerebellum():
@@ -20,12 +32,6 @@ def create_cerebellum():
     Init_PFPC = 1.0
     Init_MFDCN = 0.4
     Init_PCDCN = -1.0
-
-    MF_number = 100
-    GR_number = MF_number*100
-    PC_number = 72
-    IO_number = PC_number
-    DCN_number = PC_number//2
 
     # Neuron models definitions
     nest.CopyModel('iaf_cond_exp', 'granular_neuron')
@@ -72,15 +78,15 @@ def create_cerebellum():
     DCN = nest.Create("nuclear_neuron", DCN_number)
 
     # Weights recorder
-    rec_params = {
-        "to_memory": False,
-        "to_file":    True,
-        "label":     "PFPC",
-        "senders":    GR,
-        "targets":    PC,
-        "precision":  8
-    }
-    w_PFPC = nest.Create('weight_recorder', params=rec_params)
+    # rec_params = {
+    #     "to_memory": False,
+    #     "to_file":    True,
+    #     "label":     "PFPC",
+    #     "senders":    GR,
+    #     "targets":    PC,
+    #     "precision":  8
+    # }
+    # w_PFPC = nest.Create('weight_recorder', params=rec_params)
 
     # MFGR
     MFGR_conn_dict = {'rule': 'fixed_indegree',
@@ -112,7 +118,8 @@ def create_cerebellum():
                           "Wmin":      0.0,
                           "Wmax":      4.0,
                           "vt":        vt1[0],
-                          "weight_recorder": w_PFPC[0]})
+                          # "weight_recorder": w_PFPC[0]
+                          })
 
         PFPC_conn_dict = {'rule': 'fixed_indegree',
                           'indegree': int(0.8*GR_number),
@@ -192,9 +199,36 @@ def create_cerebellum():
         count_DCN = P // 2
         nest.Connect([PC[P]], [DCN[count_DCN]], 'one_to_one', PCDCN_syn_dict)
 
+    return MF, GR, PC, IO, DCN
+
+
+@contextmanager
+def timing():
+    t0 = time()
+    yield None
+    dt = time() - t0
+    print("%.2fs" % dt)
+
 
 def main():
-    create_cerebellum()
+    trial_len = 300
+
+    print("Creating network")
+    with timing():
+        MF, GR, PC, IO, DCN = create_cerebellum()
+
+    mf = PopView(MF)
+    dcn = PopView(DCN)
+
+    planner = Planner(MF_number, 0.0)
+    planner.connect(mf)
+
+    print("Simulating")
+    with timing():
+        nest.Simulate(trial_len)
+
+    mf.plot_spikes()
+    dcn.plot_spikes()
 
 
 if __name__ == '__main__':
