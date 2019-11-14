@@ -113,7 +113,8 @@ class Cortex(PopView):
             for i in range(n_trials):
                 trial_evs, trial_ts = cut_trial(evs, ts, i)
                 q_ts, qdd, qd, q = self.integrate_joint(trial_evs, trial_ts, j)
-                xs.append(q[-1])
+                if len(q) > 0:
+                    xs.append(q[-1])
 
                 joint.states.append([q_ts, qdd, qd, q])
 
@@ -139,25 +140,38 @@ class SensoryIO(PopView):
             n=n*2,
             params={"rate": 0.0}
         )
-        s_io_minus = sensory_io[:n]
-        s_io_plus = sensory_io[n:]
-
-        # TODO: tune scale factor
-        s_io_rate = 1.0 * abs(sensory_error)
-
-        if sensory_error > 0:
-            nest.SetStatus(s_io_plus, {"rate": s_io_rate})
-        else:
-            nest.SetStatus(s_io_minus, {"rate": s_io_rate})
-
         super().__init__(sensory_io)
 
         self.minus = self.slice(0, n)
         self.plus = self.slice(n)
 
+        self.set_rate(sensory_error)
+
+    def set_rate(self, sensory_error):
+        # TODO: tune scale factor
+        s_io_rate = 1.0 * abs(sensory_error)
+
+        if sensory_error > 0:
+            nest.SetStatus(self.plus.pop, {"rate": s_io_rate})
+        else:
+            nest.SetStatus(self.minus.pop, {"rate": s_io_rate})
+
 
 class MotorIO(PopView):
     def __init__(self, n, sensory_error):
+        motor_io = nest.Create('spike_generator', n=n*2)
+        super().__init__(motor_io)
+
+        self.minus = self.slice(0, n)
+        self.plus = self.slice(n)
+
+        self.set_rate(sensory_error)
+
+        self.states = []
+        self.x_mean = 0.0
+        self.x_std = 0.0
+
+    def set_rate(self, sensory_error):
         def make_template(upside=False):
             q_in = np.array((10.0, -10.0, -90.0, 170.0))
             q_out = np.array((0.0, 0.0, 0.0, 0.0))
@@ -184,32 +198,19 @@ class MotorIO(PopView):
 
             return m_io_ts
 
-        motor_io = nest.Create('spike_generator', n=n*2)
-        m_io_minus = motor_io[:n]
-        m_io_plus = motor_io[n:]
-
         template_p = make_template()
         template_m = make_template(upside=True)
 
         if sensory_error > 0:
-            for cell in m_io_plus:
+            for cell in self.plus.pop:
                 nest.SetStatus([cell], {'spike_times': gen_spikes(template_p)})
-            for cell in m_io_minus:
+            for cell in self.minus.pop:
                 nest.SetStatus([cell], {'spike_times': gen_spikes(template_m)})
         else:
-            for cell in m_io_plus:
+            for cell in self.plus.pop:
                 nest.SetStatus([cell], {'spike_times': gen_spikes(template_m)})
-            for cell in m_io_minus:
+            for cell in self.minus.pop:
                 nest.SetStatus([cell], {'spike_times': gen_spikes(template_p)})
-
-        super().__init__(motor_io)
-
-        self.minus = self.slice(0, n)
-        self.plus = self.slice(n)
-
-        self.states = []
-        self.x_mean = 0.0
-        self.x_std = 0.0
 
     def get_final_x(self):
         mean = self.x_mean

@@ -1,14 +1,24 @@
 import nest
 from contextlib import contextmanager
 from time import time
+import matplotlib.pyplot as plt
+from collections import namedtuple
 
-from world_populations import Planner
+from world_functions import get_reference, run_open_loop, get_error
+from world_populations import Planner, Cortex, SensoryIO, MotorIO
 from population_view import PopView
+import trajectories
 
 
 nest.Install("cerebmodule")
 nest.Install("extracerebmodule")
 
+
+Cerebellum = namedtuple("Cerebellum", "mf gr pc io dcn")
+Brain = namedtuple("Brain", "planner cortex forward inverse")
+
+
+trial_len = 300
 
 MF_number = 100
 GR_number = MF_number*100
@@ -17,22 +27,7 @@ IO_number = PC_number
 DCN_number = PC_number//2
 
 
-def create_cerebellum():
-    PLAST1 = True  # PF-PC ex
-    PLAST2 = True  # MF-DCN ex
-    PLAST3 = True  # PC-DCN
-
-    LTP1 = 0.1
-    LTD1 = -1.0
-    LTP2 = 1e-5
-    LTD2 = -1e-6
-    LTP3 = 1e-7
-    LTD3 = 1e-6
-
-    Init_PFPC = 1.0
-    Init_MFDCN = 0.4
-    Init_PCDCN = -1.0
-
+def define_models():
     # Neuron models definitions
     nest.CopyModel('iaf_cond_exp', 'granular_neuron')
     nest.CopyModel('iaf_cond_exp', 'purkinje_neuron')
@@ -71,11 +66,39 @@ def create_cerebellum():
                                         'tau_syn_ex': 0.5,
                                         'tau_syn_in': 10.0})
 
+
+@contextmanager
+def timing():
+    t0 = time()
+    yield None
+    dt = time() - t0
+    print("%.2fs" % dt)
+
+
+def create_cerebellum(inferior_olive):
+    PLAST1 = True  # PF-PC ex
+    PLAST2 = True  # MF-DCN ex
+    PLAST3 = True  # PC-DCN
+
+    LTP1 = 0.1
+    LTD1 = -1.0
+    LTP2 = 1e-5
+    LTD2 = -1e-6
+    LTP3 = 1e-7
+    LTD3 = 1e-6
+
+    Init_PFPC = 1.0
+    Init_MFDCN = 0.4
+    Init_PCDCN = -1.0
+
     MF = nest.Create("parrot_neuron", MF_number)
     GR = nest.Create("granular_neuron", GR_number)
     PC = nest.Create("purkinje_neuron", PC_number)
-    IO = nest.Create("olivary_neuron", IO_number)
     DCN = nest.Create("nuclear_neuron", DCN_number)
+    if inferior_olive:
+        IO = inferior_olive.pop
+    else:
+        IO = nest.Create("olivary_neuron", IO_number)
 
     # Weights recorder
     # rec_params = {
@@ -157,7 +180,7 @@ def create_cerebellum():
                           "vt":        vt2[0]})
 
         MFDCN_syn_dict = {"model": 'stdp_synapse_cosexp',
-                          "weight": Init_MFDCN, "delay": 10.0}
+                          "weight": Init_MFDCN, "delay": 1.0}
 
         for i, DCNi in enumerate(DCN):
             nest.Connect(MF, [DCNi], 'all_to_all', MFDCN_syn_dict)
@@ -199,36 +222,75 @@ def create_cerebellum():
         count_DCN = P // 2
         nest.Connect([PC[P]], [DCN[count_DCN]], 'one_to_one', PCDCN_syn_dict)
 
-    return MF, GR, PC, IO, DCN
+    pop_views = [PopView(pop) for pop in (MF, GR, PC, IO, DCN)]
+
+    if inferior_olive:
+        pop_views[3] = inferior_olive
+
+    cereb = Cerebellum(*pop_views)
+    return cereb
 
 
-@contextmanager
-def timing():
-    t0 = time()
-    yield None
-    dt = time() - t0
-    print("%.2fs" % dt)
+def create_brain(sensory_error):
+    prism = 10.0
+    n = 100
+
+    trajectories.save_file(prism, trial_len)
+
+    planner = Planner(n, prism)
+    cortex = Cortex(n)
+    # j1 = cortex.slice(n//4, n//2)
+
+    sIO = SensoryIO(IO_number // 2, sensory_error)
+    mIO = MotorIO(IO_number // 2, sensory_error)
+
+    planner.connect(cortex)
+
+    # Direct model
+    cereb_dir = create_cerebellum(sIO)
+    planner.connect(cereb_dir.mf)  # Sensory input
+
+    # Inverse model
+    cereb_inv = create_cerebellum(mIO)
+    cortex.connect(cereb_inv.mf)  # Efference copy
+
+    return Brain(planner, cortex, cereb_dir, cereb_inv), sIO, mIO
 
 
 def main():
     trial_len = 300
+    n = MF_number
 
-    print("Creating network")
+    n = 100
+    prism = 10.0
+    n_trials = 1
+
+    ref_mean, ref_std = get_reference(n, n_trials)
+
+    mean, std = run_open_loop(n, prism, n_trials)
+    error, std_deg = get_error(ref_mean, mean, std)
+
+    define_models()
+
+    print("Building network")
     with timing():
-        MF, GR, PC, IO, DCN = create_cerebellum()
-
-    mf = PopView(MF)
-    dcn = PopView(DCN)
-
-    planner = Planner(MF_number, 0.0)
-    planner.connect(mf)
+        brain, sIO, mIO = create_brain(error)
+    print()
 
     print("Simulating")
     with timing():
         nest.Simulate(trial_len)
+    print()
 
-    mf.plot_spikes()
-    dcn.plot_spikes()
+    fig, axs = plt.subplots(2)
+
+    evs, ts = brain.forward.io.get_events()
+    axs[0].scatter(ts, evs, marker='.')
+
+    evs, ts = brain.inverse.io.get_events()
+    axs[1].scatter(ts, evs, marker='.')
+
+    plt.show()
 
 
 if __name__ == '__main__':

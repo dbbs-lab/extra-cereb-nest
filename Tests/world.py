@@ -1,9 +1,9 @@
 import numpy as np
 import nest
-from itertools import accumulate
 import matplotlib.pyplot as plt
 
 from world_populations import Planner, Cortex, SensoryIO, MotorIO
+from world_functions import get_reference, get_error
 import trajectories
 
 nest.Install("extracerebmodule")
@@ -25,21 +25,6 @@ def run_simulation(n=400, n_trials=1, prism=0.0):
 
     cortex.integrate(n_trials)
     return cortex
-
-
-def get_reference(n, n_trials):
-    cortex = run_simulation(n, n_trials, 0.0)
-    mean, std = cortex.get_final_x()
-    return mean, std
-
-
-def get_error(ref_mean, mean, std=0.0):
-    # ref_mean = 10°
-    final_deg = mean * 10.0 / ref_mean
-    std_deg = std * 10.0 / ref_mean
-
-    error = final_deg - 10  # error in degrees
-    return error, std_deg
 
 
 def simulate_closed_loop(n=400, prism=0.0, sensory_error=0.0):
@@ -161,7 +146,7 @@ def plot_trajectories(n_trials):
 
 
 def plot_prism(n_trials, prism_values):
-    n = 400
+    n = 300
 
     ref_mean, ref_std = get_reference(n, n_trials)
     errors = []
