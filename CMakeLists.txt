@@ -41,6 +41,8 @@ set( MODULE_SOURCES
     extracerebmodule.h extracerebmodule.cpp
     closed_loop_neuron.h closed_loop_neuron.cpp
     radial_basis_function_input.h radial_basis_function_input.cpp
+    planner_neuron.h planner_neuron.cpp
+    cortex_neuron.h cortex_neuron.cpp
     mynames.h mynames.cpp
     )
 
