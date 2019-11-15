@@ -20,7 +20,7 @@ Brain = namedtuple("Brain", "planner cortex forward inverse")
 
 trial_len = 300
 
-MF_number = 100
+MF_number = 300
 GR_number = MF_number*100
 PC_number = 72
 IO_number = PC_number
@@ -132,6 +132,8 @@ def create_cerebellum(inferior_olive):
             nest.SetStatus([vt_i], {"vt_num": i})
 
         vt1_syn_dict = {"model": "static_synapse", "weight": 1.0, "delay": 1.0}
+        print("IO_number:", IO_number)
+        print("Actual len of IO:", len(IO))
         nest.Connect(IO, vt1, 'one_to_one', vt1_syn_dict)
         #
 
@@ -233,7 +235,7 @@ def create_cerebellum(inferior_olive):
 
 def create_brain(sensory_error):
     prism = 10.0
-    n = 100
+    n = MF_number
 
     trajectories.save_file(prism, trial_len)
 
@@ -257,40 +259,58 @@ def create_brain(sensory_error):
     return Brain(planner, cortex, cereb_dir, cereb_inv), sIO, mIO
 
 
-def main():
-    trial_len = 300
+def test_learning():
     n = MF_number
+    prism = 25.0
 
-    n = 100
-    prism = 10.0
-    n_trials = 1
+    # Get open loop error
+    ref_mean, ref_std = get_reference(n)
 
-    ref_mean, ref_std = get_reference(n, n_trials)
+    mean, std = run_open_loop(n, prism)
+    sensory_error, std_deg = get_error(ref_mean, mean, std)
 
-    mean, std = run_open_loop(n, prism, n_trials)
-    error, std_deg = get_error(ref_mean, mean, std)
+    print("Open loop error:", sensory_error)
+    #
+
+    nest.ResetKernel()
+    trajectories.save_file(prism, trial_len)
+
+    planner = Planner(n, prism)
+    cortex = Cortex(n)
+
+    sIO = SensoryIO(IO_number // 2, sensory_error)
+    mIO = MotorIO(IO_number // 2, sensory_error)
+
+    planner.connect(cortex)
+
+    # Closing loop without cerebellum
+    # sIOp.connect(cortex, w=-1.0)
+    # sIOm.connect(cortex, w=+1.0)
 
     define_models()
 
-    print("Building network")
-    with timing():
-        brain, sIO, mIO = create_brain(error)
-    print()
+    print("sIO len:", len(sIO.pop))
+    # Direct model
+    cereb_dir = create_cerebellum(sIO)
+    planner.connect(cereb_dir.mf)  # Sensory input
 
-    print("Simulating")
-    with timing():
-        nest.Simulate(trial_len)
-    print()
+    # Inverse model
+    cereb_inv = create_cerebellum(mIO)
+    cortex.connect(cereb_inv.mf)  # Efference copy
 
-    fig, axs = plt.subplots(2)
+    nest.Simulate(trial_len)
 
-    evs, ts = brain.forward.io.get_events()
-    axs[0].scatter(ts, evs, marker='.')
+    print('sIO+ rate:', sIO.plus.get_rate())
+    print('sIO- rate:', sIO.minus.get_rate())
+    sIO.plot_spikes()
 
-    evs, ts = brain.inverse.io.get_events()
-    axs[1].scatter(ts, evs, marker='.')
+    print('mIO+ rate:', mIO.plus.get_rate())
+    print('mIO- rate:', mIO.minus.get_rate())
+    mIO.plot_spikes()
 
-    plt.show()
+
+def main():
+    test_learning()
 
 
 if __name__ == '__main__':

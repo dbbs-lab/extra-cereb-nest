@@ -67,7 +67,9 @@ def simulate_closed_loop(n=400, prism=0.0, sensory_error=0.0):
     cortex.plot_spikes()
 
     cortex.integrate()
-    return cortex
+    mean, std = cortex.get_final_x()
+
+    return mean, std
 
 
 def test_learning():
@@ -81,8 +83,7 @@ def test_learning():
     mean, std = cortex.get_final_x()
     error, _ = get_error(ref_mean, mean, std)
 
-    cortex = simulate_closed_loop(n, prism, error)
-    mean, std = cortex.get_final_x()
+    mean, std = simulate_closed_loop(n, prism, error)
     error_after, _ = get_error(ref_mean, mean, std)
 
     print()
