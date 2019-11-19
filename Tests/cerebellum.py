@@ -1,3 +1,4 @@
+import numpy as np
 import nest
 from contextlib import contextmanager
 from time import time
@@ -20,11 +21,11 @@ Brain = namedtuple("Brain", "planner cortex forward inverse")
 
 trial_len = 300
 
-MF_number = 300
-GR_number = MF_number*100
-PC_number = 72
-IO_number = PC_number
-DCN_number = PC_number//2
+MF_number = 360*2
+GR_number = MF_number
+PC_number = 269*2
+IO_number = 10*2
+DCN_number = 22*2
 
 
 def define_models():
@@ -132,10 +133,10 @@ def create_cerebellum(inferior_olive):
             nest.SetStatus([vt_i], {"vt_num": i})
 
         vt1_syn_dict = {"model": "static_synapse", "weight": 1.0, "delay": 1.0}
-        print("IO_number:", IO_number)
-        print("Actual len of IO:", len(IO))
-        nest.Connect(IO, vt1, 'one_to_one', vt1_syn_dict)
-        #
+        IOp = np.random.randint(np.min(IO[:IO_number//2]), np.max(IO[:IO_number//2]), size=PC_number//2)
+        IOn = np.random.randint(np.min(IO[IO_number//2:]), np.max(IO[IO_number//2:]), size=PC_number//2)
+        nest.Connect(IOp.tolist(), vt1[:PC_number//2], "one_to_one", syn_spec=vt1_syn_dict)
+        nest.Connect(IOn.tolist(), vt1[PC_number//2:], "one_to_one", syn_spec=vt1_syn_dict)
 
         nest.SetDefaults('stdp_synapse_sinexp',
                          {"A_minus":   LTD1,
@@ -190,12 +191,12 @@ def create_cerebellum(inferior_olive):
             nest.SetStatus(A, {'vt_num': i})
 
         # PC-DCN inhibitory plastic connections
-        # each DCN receives 2 connections from 2 contiguous PC
+        # each PC sends 5 connections to positive/negative DCN
         vt2_syn_dict = {"model": "static_synapse", "weight": 1.0, "delay": 1.0}
-
-        for P in range(PC_number):
-            count_DCN = P // 2
-            nest.Connect([PC[P]], [vt2[count_DCN]], 'one_to_one', vt2_syn_dict)
+        vt2p = np.random.randint(np.min(vt2[:DCN_number//2]), np.max(vt2[:DCN_number//2]), size=5*PC_number//2)
+        vt2n = np.random.randint(np.min(vt2[DCN_number//2:]), np.max(vt2[DCN_number//2:]), size=5*PC_number//2)
+        nest.Connect(PC[:PC_number//2]*5, vt2p.tolist(), "one_to_one", syn_spec=vt2_syn_dict)
+        nest.Connect(PC[PC_number//2:]*5, vt2n.tolist(), "one_to_one", syn_spec=vt2_syn_dict)
 
     else:
         MFDCN_syn_dict = {"model":  "static_synapse",
@@ -219,11 +220,9 @@ def create_cerebellum(inferior_olive):
                           "weight": Init_PCDCN, "delay": 1.0}
 
     # PC-DCN inhibitory plastic connections
-    # each DCN receives 2 connections from 2 contiguous PC
-    for P in range(PC_number):
-        count_DCN = P // 2
-        nest.Connect([PC[P]], [DCN[count_DCN]], 'one_to_one', PCDCN_syn_dict)
-
+    # each PC sends 5 connections to positive/negative DCN
+    nest.Connect(PC[:PC_number//2], DCN[:DCN_number//2], {"rule": "fixed_outdegree", "outdegree": 5}, PCDCN_syn_dict)
+    nest.Connect(PC[PC_number//2:], DCN[DCN_number//2:], {"rule": "fixed_outdegree", "outdegree": 5}, PCDCN_syn_dict)
     pop_views = [PopView(pop) for pop in (MF, GR, PC, IO, DCN)]
 
     if inferior_olive:
