@@ -6,7 +6,8 @@ import nest
 from world_functions import get_reference, run_open_loop, get_error
 from world_populations import Planner, Cortex, SensoryIO, MotorIO
 
-from cerebellum import MF_number, IO_number, define_models, create_cerebellum
+from cerebellum import MF_number, IO_number, DCN_number, \
+        define_models, create_cerebellum
 import trajectories
 
 
@@ -25,32 +26,6 @@ def timing():
     yield None
     dt = time() - t0
     print("%.2fs" % dt)
-
-
-def create_brain(sensory_error):
-    prism = 10.0
-    n = MF_number
-
-    trajectories.save_file(prism, trial_len)
-
-    planner = Planner(n, prism)
-    cortex = Cortex(n)
-    # j1 = cortex.slice(n//4, n//2)
-
-    sIO = SensoryIO(IO_number // 2, sensory_error)
-    mIO = MotorIO(IO_number // 2, sensory_error)
-
-    planner.connect(cortex)
-
-    # Direct model
-    cereb_dir = create_cerebellum(sIO)
-    planner.connect(cereb_dir.mf)  # Sensory input
-
-    # Inverse model
-    cereb_inv = create_cerebellum(mIO)
-    cortex.connect(cereb_inv.mf)  # Efference copy
-
-    return Brain(planner, cortex, cereb_dir, cereb_inv), sIO, mIO
 
 
 def test_learning():
@@ -83,24 +58,40 @@ def test_learning():
 
     define_models()
 
-    print("sIO len:", len(sIO.pop))
-    # Direct model
-    cereb_dir = create_cerebellum(sIO)
-    planner.connect(cereb_dir.mf)  # Sensory input
+    # Forward model:
+    # - motor input from the cortex (efference copy)
+    # - sensory output to the cortex
+    # - sensory error signal
+    cereb_for = create_cerebellum(sIO)
+    cortex.connect(cereb_for.mf)  # Efference copy
 
-    # Inverse model
+    fDCNp = cereb_for.dcn.pop[:DCN_number//2]
+    fDCNn = cereb_for.dcn.pop[DCN_number//2:]
+    conn_dict = {"rule": "fixed_indegree", "indegree": 1}
+    nest.Connect(fDCNp, cortex.pop, conn_dict, {'weight': 1.0})
+    nest.Connect(fDCNn, cortex.pop, conn_dict, {'weight': -1.0})
+
+    # Inverse model;
+    # - sensory input from planner
+    # - motor output to world
+    # - motor error signal
     cereb_inv = create_cerebellum(mIO)
-    cortex.connect(cereb_inv.mf)  # Efference copy
+    planner.connect(cereb_inv.mf)  # Sensory input
 
-    nest.Simulate(trial_len)
+    for i in range(4):
+        nest.Simulate(trial_len)
 
-    print('sIO+ rate:', sIO.plus.get_rate())
-    print('sIO- rate:', sIO.minus.get_rate())
-    sIO.plot_spikes()
+        cortex.integrate()
+        mean, std = cortex.get_final_x()
+        sensory_error, std_deg = get_error(ref_mean, mean, std)
+        print("Closed loop error %d:" % i, sensory_error)
 
-    print('mIO+ rate:', mIO.plus.get_rate())
-    print('mIO- rate:', mIO.minus.get_rate())
-    mIO.plot_spikes()
+        sIO.set_rate(sensory_error)
+        mIO.set_rate(sensory_error)
+
+    # print('Forward DCN rate:', cereb_for.dcn.get_rate())
+    cereb_for.dcn.plot_spikes()
+    cereb_inv.dcn.plot_spikes()
 
 
 def main():
