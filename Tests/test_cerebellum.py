@@ -2,8 +2,7 @@ from time import time
 from contextlib import contextmanager
 from collections import namedtuple
 import nest
-
-from world_functions import get_reference, run_open_loop, get_error
+import world
 from world_populations import Planner, Cortex, SensoryIO, MotorIO
 
 from cerebellum import MF_number, IO_number, DCN_number, \
@@ -33,10 +32,10 @@ def test_learning():
     prism = 25.0
 
     # Get open loop error
-    ref_mean, ref_std = get_reference(n)
+    ref_mean, ref_std = world.get_reference(n)
 
-    mean, std = run_open_loop(n, prism)
-    sensory_error, std_deg = get_error(ref_mean, mean, std)
+    mean, std = world.run_open_loop(n, prism)
+    sensory_error, std_deg = world.get_error(ref_mean, mean, std)
 
     print("Open loop error:", sensory_error)
     #
@@ -83,7 +82,7 @@ def test_learning():
 
         cortex.integrate()
         mean, std = cortex.get_final_x()
-        sensory_error, std_deg = get_error(ref_mean, mean, std)
+        sensory_error, std_deg = world.get_error(ref_mean, mean, std)
         print("Closed loop error %d:" % i, sensory_error)
 
         sIO.set_rate(sensory_error)
