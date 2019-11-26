@@ -71,19 +71,15 @@ mynest::planner_neuron::Parameters_::set( const DictionaryDatum& d )
  * ---------------------------------------------------------------- */
 
 mynest::planner_neuron::planner_neuron()
-  : Archiving_Node()
+  : DeviceNode()
   , P_()
   , V_()
 {
 }
 
 mynest::planner_neuron::planner_neuron( const planner_neuron& n )
-  : Archiving_Node( n )
+  : DeviceNode( n )
   , P_( n.P_ )
-{
-}
-
-mynest::planner_neuron::~planner_neuron()
 {
 }
 
@@ -94,13 +90,16 @@ mynest::planner_neuron::~planner_neuron()
 void
 mynest::planner_neuron::init_state_( const Node& proto )
 {
+  const planner_neuron& pr = downcast< planner_neuron >( proto );
+
+  device_.init_state( pr.device_ );
 }
 
 
 void
 mynest::planner_neuron::init_buffers_()
 {
-  Archiving_Node::clear_history();
+  device_.init_buffers();
 }
 
 void
@@ -110,56 +109,45 @@ mynest::planner_neuron::calibrate()
   rate =  std::max(0.0, rate);
   V_.rate_ = rate;
 
-  double time_res = nest::Time::get_resolution().get_ms();  // 0.1
-  long ticks = (double)P_.trial_length_ / time_res;
+  device_.calibrate();
 
-  librandom::RngPtr rng = nest::kernel().rng_manager.get_rng( get_thread() );
-
-  V_.poisson_dev_.set_lambda( time_res * rate * 1e-3 );
-
-  for (long t = 0; t < ticks; t++ )
-  {
-    long n_spikes = V_.poisson_dev_.ldev( rng );
-
-    if ( n_spikes > 0 ) // we must not send events with multiplicity 0
-    {
-      B_.spikes_[t] = n_spikes;
-    }
-  }
+  // rate_ is in Hz, dt in ms, so we have to convert from s to ms
+  V_.poisson_dev_.set_lambda( nest::Time::get_resolution().get_ms() * V_.rate_ * 1e-3 );
 }
 
 
 void
-mynest::planner_neuron::update( nest::Time const& origin, const long from, const long to )
+mynest::planner_neuron::update( nest::Time const& T, const long from, const long to )
 {
-  assert( to >= 0 );
-  assert( static_cast<nest::delay>(from) < nest::kernel().connection_manager.get_min_delay() );
+  assert( to >= 0 && ( nest::delay ) from < nest::kernel().connection_manager.get_min_delay() );
   assert( from < to );
 
-  double time_res = nest::Time::get_resolution().get_ms();  // 0.1
-  long trial_ticks = (double)P_.trial_length_ / time_res;
+  if ( V_.rate_ <= 0 )
+  {
+    return;
+  }
 
   for ( long lag = from; lag < to; ++lag )
   {
-    long t = origin.get_steps() + lag;
-    int n_spikes = B_.spikes_[t % trial_ticks];
-
-    if ( n_spikes > 0 )
+    if ( not device_.is_active( T + nest::Time::step( lag ) ) )
     {
-      nest::SpikeEvent se;
-      se.set_multiplicity( n_spikes );
-      nest::kernel().event_delivery_manager.send( *this, se, lag );
-
-      // set the spike times, respecting the multiplicity
-      for ( int i = 0; i < n_spikes; i++ )
-      {
-        set_spiketime( nest::Time::step( t ) );
-      }
+      continue; // no spike at this lag
     }
+
+    nest::DSSpikeEvent se;
+    nest::kernel().event_delivery_manager.send( *this, se, lag );
   }
 }
 
 void
-mynest::planner_neuron::handle( nest::SpikeEvent& e )
+mynest::planner_neuron::event_hook( nest::DSSpikeEvent& e )
 {
+  librandom::RngPtr rng = nest::kernel().rng_manager.get_rng( get_thread() );
+  long n_spikes = V_.poisson_dev_.ldev( rng );
+
+  if ( n_spikes > 0 ) // we must not send events with multiplicity 0
+  {
+    e.set_multiplicity( n_spikes );
+    e.get_receiver().handle( e );
+  }
 }
