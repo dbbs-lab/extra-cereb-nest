@@ -89,8 +89,8 @@ def test_learning():
         mIO.set_rate(sensory_error)
 
     # print('Forward DCN rate:', cereb_for.dcn.get_rate())
-    cereb_for.dcn.plot_spikes()
-    cereb_inv.dcn.plot_spikes()
+    # cereb_for.dcn.plot_spikes()
+    # cereb_inv.dcn.plot_spikes()
 
 
 def main():

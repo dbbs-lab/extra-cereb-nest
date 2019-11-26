@@ -1,8 +1,29 @@
+import numpy as np
 import nest
 import trajectories
 from world_populations import Planner, Cortex
 
 trial_len = 300
+
+
+def select_trial_events(evs, ts, trial_i, norm_times=True):
+    evts = zip(evs, ts)
+    trial_evts = [
+        (ev, t) for (ev, t) in evts
+        if trial_len * trial_i <= t < trial_len*(trial_i+1)
+    ]
+    if len(trial_evts) == 0:
+        return [], []
+
+    trial_evs, trial_ts = zip(*trial_evts)
+
+    trial_evs = np.array(trial_evs)
+    trial_ts = np.array(trial_ts)
+
+    if norm_times:
+        trial_ts -= trial_len * trial_i
+
+    return trial_evs, trial_ts
 
 
 def run_open_loop(n, prism, n_trials=1):

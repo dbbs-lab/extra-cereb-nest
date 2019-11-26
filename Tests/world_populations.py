@@ -3,29 +3,10 @@ import matplotlib.pyplot as plt
 from itertools import accumulate
 import nest
 from population_view import PopView
+from world import select_trial_events
 import trajectories
 
 trial_len = 300
-
-
-def cut_trial(evs, ts, i, norm_times=True):
-    evts = zip(evs, ts)
-    trial_evts = [
-        (ev, t) for (ev, t) in evts
-        if trial_len*i <= t < trial_len*(i+1)
-    ]
-    if len(trial_evts) == 0:
-        return [], []
-
-    trial_evs, trial_ts = zip(*trial_evts)
-
-    trial_evs = np.array(trial_evs)
-    trial_ts = np.array(trial_ts)
-
-    if norm_times:
-        trial_ts -= trial_len*i
-
-    return trial_evs, trial_ts
 
 
 class Planner(PopView):
@@ -111,7 +92,7 @@ class Cortex(PopView):
             xs = []  # position final value
 
             for i in range(n_trials):
-                trial_evs, trial_ts = cut_trial(evs, ts, i)
+                trial_evs, trial_ts = select_trial_events(evs, ts, i)
                 q_ts, qdd, qd, q = self.integrate_joint(trial_evs, trial_ts, j)
                 if len(q) > 0:
                     xs.append(q[-1])
@@ -227,7 +208,7 @@ class MotorIO(PopView):
             return
 
         for i in range(n_trials):
-            trial_evs, trial_ts = cut_trial(evs, ts, i)
+            trial_evs, trial_ts = select_trial_events(evs, ts, i)
 
             pop_size = len(self.pop)
             torques = [
