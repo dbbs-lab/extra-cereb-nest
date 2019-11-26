@@ -1,7 +1,6 @@
 import numpy as np
 import nest
 import trajectories
-from world_populations import Planner, Cortex
 
 trial_len = 300
 
@@ -27,6 +26,9 @@ def select_trial_events(evs, ts, trial_i, norm_times=True):
 
 
 def run_open_loop(n, prism, n_trials=1):
+    # Ugly workaround to avoid circular imports
+    from world_populations import Planner, Cortex
+
     nest.ResetKernel()
     trajectories.save_file(prism, trial_len)
 
