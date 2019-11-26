@@ -3,7 +3,7 @@ import matplotlib.pylab as plt
 
 nest.Install("extracerebmodule")
 
-n = 100  # Number of MFs
+n = 111  # Number of MFs
 trial_len = 300  # [ms]
 n_trial = 20  # Number of trials
 target = 0.0  # [deg] final position of J1
@@ -31,7 +31,7 @@ cortex = nest.Create(
         )
 
 for i, neuron in enumerate(cortex):
-    nest.SetStatus([neuron], {"joint_id": i // (n//4),
+    nest.SetStatus([neuron], {"joint_id": i * 4 // n,
                               "fiber_id": i % (n//4)})
 
 nest.Connect(planner, cortex, 'one_to_one')

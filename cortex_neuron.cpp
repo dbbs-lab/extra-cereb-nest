@@ -66,6 +66,10 @@ mynest::cortex_neuron::Parameters_::set( const DictionaryDatum& d )
     throw nest::BadProperty( "The trial length cannot be zero or negative." );
   }
   updateValue< long >( d, mynames::joint_id, joint_id_ );
+  if ( joint_id_ > 3 || joint_id_ < 0 )
+  {
+    throw nest::BadProperty( "The joint ID cannot be negative or grater than 3" );
+  }
   updateValue< long >( d, mynames::fiber_id, fiber_id_ );
   updateValue< long >( d, mynames::fibers_per_joint, fibers_per_joint_ );
   updateValue< double >( d, mynames::rbf_sdev, rbf_sdev_ );
