@@ -26,7 +26,7 @@ cortex = nest.Create(
         params={
             "trial_length": trial_len,
             "fibers_per_joint": n//4,
-            "rbf_sdev": 15.0,
+            "rbf_sdev": 0.15 * n,
             }
         )
 
