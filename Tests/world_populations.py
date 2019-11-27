@@ -84,15 +84,22 @@ class Cortex(PopView):
         std = self.joints[1].x_std
         return mean, std
 
-    def integrate(self, n_trials=1, plot=False):
+    def integrate(self, n_trials=1, trial_i=None, plot=False):
         for j, joint in enumerate(self.joints):
             evs, ts = joint.get_events()
 
             joint.states = []  # (ts, qdd, qd, q) * n_trials
             xs = []  # position final value
 
-            for i in range(n_trials):
-                trial_evs, trial_ts = select_trial_events(evs, ts, i)
+            if trial_i is not None:
+                trials = [trial_i]
+            else:
+                trials = range(n_trials)
+
+            for trial_i in trials:
+                trial_evs, trial_ts = select_trial_events(evs, ts, trial_i)
+                # print("Trial times:", min(trial_ts), max(trial_ts))
+
                 q_ts, qdd, qd, q = self.integrate_joint(trial_evs, trial_ts, j)
                 if len(q) > 0:
                     xs.append(q[-1])
@@ -203,7 +210,7 @@ class InverseDCN(PopView):
         std = self.x_std
         return mean, std
 
-    def integrate(self, n_trials=1, plot=False):
+    def integrate(self, n_trials=1, trial_i=None, plot=False):
         evs, ts = self.get_events()
 
         self.states = []  # (ts, qdd, qd, q) * n_trials
@@ -212,8 +219,16 @@ class InverseDCN(PopView):
         if len(evs) == 0:
             return
 
-        for i in range(n_trials):
-            trial_evs, trial_ts = select_trial_events(evs, ts, i)
+        if trial_i is not None:
+            trials = [trial_i]
+        else:
+            trials = range(n_trials)
+
+        for i in trials:
+            # if n_trials is 1 than integrate only the last trial
+            trial_i = n_trials - 1 - i
+
+            trial_evs, trial_ts = select_trial_events(evs, ts, trial_i)
 
             pop_size = len(self.pop)
             torques = [

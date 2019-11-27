@@ -5,7 +5,7 @@ import trajectories
 trial_len = 300
 
 
-def select_trial_events(evs, ts, trial_i, norm_times=True):
+def select_trial_events(evs, ts, trial_i, norm_times=False):
     evts = zip(evs, ts)
     trial_evts = [
         (ev, t) for (ev, t) in evts

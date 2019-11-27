@@ -82,13 +82,13 @@ def test_learning():
     for i in range(4):
         nest.Simulate(trial_len)
 
-        cortex.integrate()
+        cortex.integrate(trial_i=i)
         mean, std = cortex.get_final_x()
         sensory_error, std_deg = world.get_error(ref_mean, mean, std)
         print("Closed loop error %d:" % i, sensory_error)
 
-        iDCNp.integrate()
-        iDCNn.integrate()
+        iDCNp.integrate(trial_i=i)
+        iDCNn.integrate(trial_i=i)
 
         x_dcnp, _ = iDCNp.get_final_x()
         x_dcnn, _ = iDCNn.get_final_x()
