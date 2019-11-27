@@ -59,9 +59,9 @@ def simulate_closed_loop(n=400, prism=0.0, sensory_error=0.0):
     print('mIO- rate:', mIOm.get_rate())
     mIO.plot_spikes()
 
-    mIO.integrate()
-    mIO_pos, _ = mIO.get_final_x()
-    print("Motor IO contribution to position:", mIO_pos)
+    # mIO.integrate()
+    # mIO_pos, _ = mIO.get_final_x()
+    # print("Motor IO contribution to position:", mIO_pos)
 
     print('j1 rate:', j1.get_rate())
     cortex.plot_spikes()
@@ -197,12 +197,12 @@ def plot_mIO_correction(n_trials, prism_values):
         print('mIO+ rate:', mIOp.get_rate())
         print('mIO- rate:', mIOm.get_rate())
 
-        mIO.integrate(n_trials)
-        mIO_pos, mIO_std = mIO.get_final_x()
-        print("Motor IO contribution to position:", mIO_pos)
+        # mIO.integrate(n_trials)
+        # mIO_pos, mIO_std = mIO.get_final_x()
+        # print("Motor IO contribution to position:", mIO_pos)
 
-        corrections.append(mIO_pos)
-        stds.append(mIO_std)
+        # corrections.append(mIO_pos)
+        # stds.append(mIO_std)
 
     plt.errorbar(prism_values, corrections, stds)
     plt.show()

@@ -148,10 +148,6 @@ class MotorIO(PopView):
 
         self.set_rate(sensory_error)
 
-        self.states = []
-        self.x_mean = 0.0
-        self.x_std = 0.0
-
     def set_rate(self, sensory_error):
         def make_template(upside=False):
             q_in = np.array((10.0, -10.0, -90.0, 170.0))
@@ -193,6 +189,15 @@ class MotorIO(PopView):
             for cell in self.minus.pop:
                 nest.SetStatus([cell], {'spike_times': gen_spikes(template_p)})
 
+
+class InverseDCN(PopView):
+    def __init__(self, pop):
+        super().__init__(pop)
+
+        self.states = []
+        self.x_mean = 0.0
+        self.x_std = 0.0
+
     def get_final_x(self):
         mean = self.x_mean
         std = self.x_std
@@ -212,7 +217,7 @@ class MotorIO(PopView):
 
             pop_size = len(self.pop)
             torques = [
-                (1.0 if ev in self.plus.pop else -1.0)
+                (1.0 if ev in self.pop else -1.0)
                 for ev in trial_evs
             ]
             vel = np.array(list(accumulate(torques))) / pop_size
