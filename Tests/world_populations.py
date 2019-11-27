@@ -84,15 +84,22 @@ class Cortex(PopView):
         std = self.joints[1].x_std
         return mean, std
 
-    def integrate(self, n_trials=1, plot=False):
+    def integrate(self, n_trials=1, trial_i=None, plot=False):
         for j, joint in enumerate(self.joints):
             evs, ts = joint.get_events()
 
             joint.states = []  # (ts, qdd, qd, q) * n_trials
             xs = []  # position final value
 
-            for i in range(n_trials):
-                trial_evs, trial_ts = select_trial_events(evs, ts, i)
+            if trial_i is not None:
+                trials = [trial_i]
+            else:
+                trials = range(n_trials)
+
+            for trial_i in trials:
+                trial_evs, trial_ts = select_trial_events(evs, ts, trial_i)
+                # print("Trial times:", min(trial_ts), max(trial_ts))
+
                 q_ts, qdd, qd, q = self.integrate_joint(trial_evs, trial_ts, j)
                 if len(q) > 0:
                     xs.append(q[-1])
@@ -148,10 +155,6 @@ class MotorIO(PopView):
 
         self.set_rate(sensory_error)
 
-        self.states = []
-        self.x_mean = 0.0
-        self.x_std = 0.0
-
     def set_rate(self, sensory_error):
         def make_template(upside=False):
             q_in = np.array((10.0, -10.0, -90.0, 170.0))
@@ -193,12 +196,21 @@ class MotorIO(PopView):
             for cell in self.minus.pop:
                 nest.SetStatus([cell], {'spike_times': gen_spikes(template_p)})
 
+
+class InverseDCN(PopView):
+    def __init__(self, pop):
+        super().__init__(pop)
+
+        self.states = []
+        self.x_mean = 0.0
+        self.x_std = 0.0
+
     def get_final_x(self):
         mean = self.x_mean
         std = self.x_std
         return mean, std
 
-    def integrate(self, n_trials=1, plot=False):
+    def integrate(self, n_trials=1, trial_i=None, plot=False):
         evs, ts = self.get_events()
 
         self.states = []  # (ts, qdd, qd, q) * n_trials
@@ -207,12 +219,20 @@ class MotorIO(PopView):
         if len(evs) == 0:
             return
 
-        for i in range(n_trials):
-            trial_evs, trial_ts = select_trial_events(evs, ts, i)
+        if trial_i is not None:
+            trials = [trial_i]
+        else:
+            trials = range(n_trials)
+
+        for i in trials:
+            # if n_trials is 1 than integrate only the last trial
+            trial_i = n_trials - 1 - i
+
+            trial_evs, trial_ts = select_trial_events(evs, ts, trial_i)
 
             pop_size = len(self.pop)
             torques = [
-                (1.0 if ev in self.plus.pop else -1.0)
+                (1.0 if ev in self.pop else -1.0)
                 for ev in trial_evs
             ]
             vel = np.array(list(accumulate(torques))) / pop_size

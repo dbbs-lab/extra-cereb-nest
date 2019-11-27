@@ -3,7 +3,7 @@ from contextlib import contextmanager
 from collections import namedtuple
 import nest
 import world
-from world_populations import Planner, Cortex, SensoryIO, MotorIO
+from world_populations import Planner, Cortex, SensoryIO, MotorIO, InverseDCN
 
 from cerebellum import MF_number, IO_number, DCN_number, \
         define_models, create_cerebellum
@@ -76,14 +76,26 @@ def test_learning():
     # - motor error signal
     cereb_inv = create_cerebellum(mIO)
     planner.connect(cereb_inv.mf)  # Sensory input
+    iDCNp = InverseDCN(cereb_inv.dcn.pop[:DCN_number//2])
+    iDCNn = InverseDCN(cereb_inv.dcn.pop[DCN_number//2:])
 
     for i in range(4):
         nest.Simulate(trial_len)
 
-        cortex.integrate()
+        cortex.integrate(trial_i=i)
         mean, std = cortex.get_final_x()
         sensory_error, std_deg = world.get_error(ref_mean, mean, std)
         print("Closed loop error %d:" % i, sensory_error)
+
+        iDCNp.integrate(trial_i=i)
+        iDCNn.integrate(trial_i=i)
+
+        x_dcnp, _ = iDCNp.get_final_x()
+        x_dcnn, _ = iDCNn.get_final_x()
+
+        print("Contributions from inverse DCN:")
+        print("Positive:", x_dcnp)
+        print("Negative:", x_dcnn)
 
         sIO.set_rate(sensory_error)
         mIO.set_rate(sensory_error)
