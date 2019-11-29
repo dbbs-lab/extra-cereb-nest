@@ -140,9 +140,8 @@ def create_cerebellum(inferior_olive):
                          "weight": Init_PFPC, "delay":  1.0}
 
         for i, PCi in enumerate(PC):
+            PFPC_syn_dict['vt_num'] = float(i)
             nest.Connect(GR, [PCi], PFPC_conn_dict, PFPC_syn_dict)
-            A = nest.GetConnections(GR, [PCi])
-            nest.SetStatus(A, {'vt_num': i})
     else:
         PFPC_conn_dict = {'rule': 'fixed_indegree',
                           'indegree': int(0.8*GR_number),
@@ -171,9 +170,8 @@ def create_cerebellum(inferior_olive):
                           "weight": Init_MFDCN, "delay": 1.0}
 
         for i, DCNi in enumerate(DCN):
+            MFDCN_syn_dict["vt_num"] = float(i)
             nest.Connect(MF, [DCNi], 'all_to_all', MFDCN_syn_dict)
-            A = nest.GetConnections(MF, [DCNi])
-            nest.SetStatus(A, {'vt_num': i})
 
         # PC-DCN inhibitory plastic connections
         # each PC sends 5 connections to positive/negative DCN
