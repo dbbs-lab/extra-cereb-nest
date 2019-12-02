@@ -122,7 +122,7 @@ class Cortex(PopView):
 
 
 class SensoryIO(PopView):
-    def __init__(self, n, sensory_error):
+    def __init__(self, n, sensory_error=0.0):
         sensory_io = nest.Create(
             'poisson_generator',
             n=n*2,
@@ -146,12 +146,12 @@ class SensoryIO(PopView):
 
 
 class MotorIO(PopView):
-    def __init__(self, n, sensory_error):
+    def __init__(self, n, sensory_error=0.0):
         motor_io = nest.Create('spike_generator', n=n*2)
         super().__init__(motor_io)
 
-        self.minus = self.slice(0, n)
-        self.plus = self.slice(n)
+        self.plus = self.slice(0, n)  # [0:n]
+        self.minus = self.slice(n)    # [n:]
 
         self.set_rate(sensory_error)
 
@@ -197,7 +197,16 @@ class MotorIO(PopView):
                 nest.SetStatus([cell], {'spike_times': gen_spikes(template_p)})
 
 
-class InverseDCN(PopView):
+class DirectDCN(PopView):
+    def __init__(self, pop):
+        super().__init__(pop)
+
+        n = len(pop)
+        self.plus = self.slice(0, n//2)  # [0:n]
+        self.minus = self.slice(n//2)    # [n:]
+
+
+class InverseDCN_half(PopView):
     def __init__(self, pop):
         super().__init__(pop)
 
@@ -248,3 +257,12 @@ class InverseDCN(PopView):
 
         self.x_mean = np.mean(xs)
         self.x_std = np.std(xs)
+
+
+class InverseDCN(PopView):
+    def __init__(self, pop):
+        super().__init__(pop)
+
+        n = len(pop)
+        self.plus = InverseDCN_half(pop[0:n//2])
+        self.minus = InverseDCN_half(pop[n//2:])
