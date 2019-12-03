@@ -3,10 +3,10 @@ from contextlib import contextmanager
 from collections import namedtuple
 import nest
 import world
-from world_populations import Planner, Cortex, \
-        SensoryIO, MotorIO, DirectDCN, InverseDCN
+from world_populations import Planner, Cortex
 
-from cerebellum import MF_number, IO_number, define_models, create_cerebellum
+from cerebellum import MF_number, define_models, \
+        create_forward_cerebellum, create_inverse_cerebellum
 import trajectories
 
 
@@ -41,11 +41,10 @@ def create_brain(prism):
     # - motor input from the cortex (efference copy)
     # - sensory output to the cortex
     # - sensory error signal
-    sIO = SensoryIO(IO_number)
-    cereb_for = create_cerebellum(sIO)
+    cereb_for = create_forward_cerebellum()
     cortex.connect(cereb_for.mf)  # Efference copy
 
-    fDCN = DirectDCN(cereb_for.dcn.pop)
+    fDCN = cereb_for.dcn
     conn_dict = {"rule": "fixed_indegree", "indegree": 1}
     nest.Connect(fDCN.plus.pop, cortex.pop, conn_dict, {'weight': 1.0})
     nest.Connect(fDCN.minus.pop, cortex.pop, conn_dict, {'weight': -1.0})
@@ -54,12 +53,10 @@ def create_brain(prism):
     # - sensory input from planner
     # - motor output to world
     # - motor error signal
-    mIO = MotorIO(IO_number)
-    cereb_inv = create_cerebellum(mIO)
+    cereb_inv = create_inverse_cerebellum()
     planner.connect(cereb_inv.mf)  # Sensory input
-    iDCN = InverseDCN(cereb_inv.dcn.pop)
 
-    return cortex, sIO, mIO, iDCN
+    return cortex, cereb_for, cereb_inv
 
 
 def test_learning():
@@ -75,42 +72,39 @@ def test_learning():
     #
 
     nest.ResetKernel()
-    cortex, sIO, mIO, iDCN = create_brain(prism)
+    cortex, cereb_for, cereb_inv = create_brain(prism)
 
     for i in range(4):
-        sIO.set_rate(sensory_error)
-        mIO.set_rate(sensory_error)
+        cereb_for.io.set_rate(sensory_error)
+        cereb_inv.io.set_rate(sensory_error)
 
         nest.Simulate(trial_len)
-        return
 
         cortex.integrate(trial_i=i)
         mean, std = cortex.get_final_x()
         sensory_error, std_deg = world.get_error(ref_mean, mean, std)
         print("Closed loop error %d:" % i, sensory_error)
 
-        iDCN.plus.integrate(trial_i=i)
-        iDCN.minus.integrate(trial_i=i)
+        cereb_inv.dcn.plus.integrate(trial_i=i)
+        cereb_inv.dcn.minus.integrate(trial_i=i)
 
-        x_dcnp, _ = iDCN.plus.get_final_x()
-        x_dcnn, _ = iDCN.minus.get_final_x()
+        x_dcnp, _ = cereb_inv.dcn.plus.get_final_x()
+        x_dcnn, _ = cereb_inv.dcn.minus.get_final_x()
 
         print("Contributions from inverse DCN:")
         print("Positive:", x_dcnp)
         print("Negative:", x_dcnn)
 
-    # print('Forward DCN rate:', cereb_for.dcn.get_rate())
-    # cereb_for.dcn.plot_spikes()
-    # cereb_inv.dcn.plot_spikes()
+    print('Forward DCN rate:', cereb_for.dcn.get_rate())
+    cereb_for.dcn.plot_spikes()
+    cereb_inv.dcn.plot_spikes()
 
 
 def test_creation():
     define_models()
 
-    sIO = SensoryIO(IO_number, 0)
-
     with timing():
-        create_cerebellum(sIO)
+        create_forward_cerebellum()
 
 
 def main():

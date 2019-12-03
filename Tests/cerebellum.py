@@ -2,6 +2,7 @@ import numpy as np
 from collections import namedtuple
 import nest
 from population_view import PopView
+from world_populations import SensoryIO, MotorIO, DirectDCN, InverseDCN
 
 Cerebellum = namedtuple("Cerebellum", "mf gr pc io dcn")
 
@@ -223,10 +224,24 @@ def create_cerebellum(inferior_olive):
     nest.Connect(PCn, DCNn,
                  {"rule": "fixed_outdegree", "outdegree": 5}, PCDCN_syn_dict)
 
-    pop_views = [PopView(pop) for pop in (MF, GR, PC, IO, DCN)]
+    return MF, GR, PC, IO, DCN
 
-    if inferior_olive:
-        pop_views[3] = inferior_olive
 
-    cereb = Cerebellum(*pop_views)
-    return cereb
+def create_forward_cerebellum():
+    sIO = SensoryIO(IO_number)
+    MF, GR, PC, IO, DCN = create_cerebellum(sIO)
+
+    return Cerebellum(
+        PopView(MF), PopView(GR), PopView(PC),
+        sIO, DirectDCN(DCN)
+    )
+
+
+def create_inverse_cerebellum():
+    mIO = MotorIO(IO_number)
+    MF, GR, PC, IO, DCN = create_cerebellum(mIO)
+
+    return Cerebellum(
+        PopView(MF), PopView(GR), PopView(PC),
+        mIO, InverseDCN(DCN)
+    )
