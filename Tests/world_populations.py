@@ -141,7 +141,9 @@ class SensoryIO(PopView):
 
         if sensory_error > 0:
             nest.SetStatus(self.plus.pop, {"rate": s_io_rate})
+            nest.SetStatus(self.minus.pop, {"rate": 0.0})
         else:
+            nest.SetStatus(self.plus.pop, {"rate": 0.0})
             nest.SetStatus(self.minus.pop, {"rate": s_io_rate})
 
 
