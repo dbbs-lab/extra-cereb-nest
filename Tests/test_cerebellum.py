@@ -1,6 +1,7 @@
 from time import time
 from contextlib import contextmanager
 from collections import namedtuple
+import matplotlib.pyplot as plt
 import nest
 import world
 from world_populations import Planner, Cortex
@@ -96,8 +97,15 @@ def test_learning():
         print("Negative:", x_dcnn)
 
     print('Forward DCN rate:', cereb_for.dcn.get_rate())
-    cereb_for.dcn.plot_spikes()
-    cereb_inv.dcn.plot_spikes()
+
+    fig, axs = plt.subplots(4)
+    cereb_for.io.plot_spikes('Forward IO', axs[0])
+    cereb_for.dcn.plot_spikes('Forward DCN', axs[1])
+
+    cereb_for.io.plot_spikes('Inverse IO', axs[2])
+    cereb_inv.dcn.plot_spikes('Inverse DCN', axs[3])
+
+    plt.show()
 
 
 def test_creation():

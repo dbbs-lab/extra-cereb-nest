@@ -18,11 +18,18 @@ def get_spike_events(spike_detector):
     return evs, ts
 
 
-def plot_spikes(evs, ts, pop=None):
-    plt.scatter(ts, evs, marker='.')
+def plot_spikes(evs, ts, pop=None, title='', ax=None):
+    if ax is None:
+        # ax = plt
+        fig, ax = plt.subplots(1)
+
+    ax.scatter(ts, evs, marker='.')
+    ax.set_ylabel(title)
     if pop:
-        plt.ylim(min(pop), max(pop))
-    plt.show()
+        ax.set_ylim([min(pop), max(pop)])
+
+    if ax is None:
+        plt.show()
 
 
 def get_rate(spike_detector, pop):
@@ -48,6 +55,6 @@ class PopView:
     def get_rate(self):
         return get_rate(self.detector, self.pop)
 
-    def plot_spikes(self):
+    def plot_spikes(self, title='', ax=None):
         evs, ts = self.get_events()
-        plot_spikes(evs, ts, self.pop)
+        plot_spikes(evs, ts, self.pop, title, ax)
