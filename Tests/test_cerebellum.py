@@ -75,22 +75,25 @@ def test_learning():
     nest.ResetKernel()
     cortex, cereb_for, cereb_inv = create_brain(prism)
 
-    for i in range(4):
+    for i in range(1):
         cereb_for.io.set_rate(sensory_error)
         cereb_inv.io.set_rate(sensory_error)
 
         nest.Simulate(trial_len)
 
         cortex.integrate(trial_i=i)
-        mean, std = cortex.get_final_x()
-        sensory_error, std_deg = world.get_error(ref_mean, mean, std)
-        print("Closed loop error %d:" % i, sensory_error)
+        x_cortex, std = cortex.get_final_x()
 
         cereb_inv.dcn.plus.integrate(trial_i=i)
         cereb_inv.dcn.minus.integrate(trial_i=i)
 
         x_dcnp, _ = cereb_inv.dcn.plus.get_final_x()
         x_dcnn, _ = cereb_inv.dcn.minus.get_final_x()
+
+        x_sum = x_cortex + x_dcnp - x_dcnn
+
+        sensory_error, std_deg = world.get_error(ref_mean, x_sum, std)
+        print("Closed loop error %d:" % i, sensory_error)
 
         print("Contributions from inverse DCN:")
         print("Positive:", x_dcnp)
