@@ -105,7 +105,7 @@ def test_learning():
     cereb_for.io.plot_spikes('Forward IO', axs[0])
     cereb_for.dcn.plot_spikes('Forward DCN', axs[1])
 
-    cereb_for.io.plot_spikes('Inverse IO', axs[2])
+    cereb_inv.io.plot_spikes('Inverse IO', axs[2])
     cereb_inv.dcn.plot_spikes('Inverse DCN', axs[3])
 
     plt.show()

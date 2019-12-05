@@ -242,10 +242,7 @@ class InverseDCN_half(PopView):
             trial_evs, trial_ts = select_trial_events(evs, ts, trial_i)
 
             pop_size = len(self.pop)
-            torques = [
-                (1.0 if ev in self.pop else -1.0)
-                for ev in trial_evs
-            ]
+            torques = [1.0 for ev in trial_evs if ev in self.pop]
             vel = np.array(list(accumulate(torques))) / pop_size
             pos = np.array(list(accumulate(vel))) / pop_size
 
