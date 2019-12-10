@@ -96,9 +96,7 @@ def create_cerebellum(inferior_olive):
                       "multapses": False}
 
     MFGR_syn_dict = {"model": "static_synapse",
-                     "weight": {'distribution': 'uniform',
-                                # -> 0.75 GR fire at 7 Hz
-                                'low': 1.0, 'high': 2.0},
+                     "weight": 0.75,
                      "delay": 1.0}
 
     nest.Connect(MF, GR, MFGR_conn_dict, MFGR_syn_dict)

@@ -41,7 +41,7 @@ class Cortex(PopView):
             params={
                 "trial_length": trial_len,
                 "fibers_per_joint": n//4,
-                "rbf_sdev": 15.0,
+                "rbf_sdev": n/8,
                 "baseline_rate": 10.0,
                 }
             )
