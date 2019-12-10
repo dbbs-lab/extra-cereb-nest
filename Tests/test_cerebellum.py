@@ -111,6 +111,36 @@ def test_learning():
     plt.show()
 
 
+def test_initial_rates():
+    prism = 25.0
+
+    nest.ResetKernel()
+    cortex, cereb_for, cereb_inv = create_brain(prism)
+
+    nest.Simulate(trial_len)
+
+    print()
+    print("Forward MF rate:", cereb_for.mf.get_rate())
+    print("Inverse MF rate:", cereb_inv.mf.get_rate())
+
+    print()
+    print("Forward GR rate:", cereb_for.gr.get_rate())
+    print("Inverse GR rate:", cereb_inv.gr.get_rate())
+
+    print()
+    print("Forward PC rate:", cereb_for.pc.get_rate())
+    print("Inverse PC rate:", cereb_inv.pc.get_rate())
+
+    print()
+    print("Forward DCN rate:", cereb_for.dcn.get_rate())
+    print("Inverse DCN rate:", cereb_inv.dcn.get_rate())
+
+    # fig, axs = plt.subplots(2)
+    # cereb_for.mf.plot_spikes('Forward MF', axs[0])
+    # cereb_inv.mf.plot_spikes('Inverse MF', axs[1])
+    # plt.show()
+
+
 def test_creation():
     define_models()
 
@@ -120,7 +150,8 @@ def test_creation():
 
 def main():
     # test_creation()
-    test_learning()
+    # test_learning()
+    test_initial_rates()
 
 
 if __name__ == '__main__':

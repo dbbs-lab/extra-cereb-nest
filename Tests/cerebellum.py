@@ -54,9 +54,10 @@ def define_models():
 
 
 def create_cerebellum(inferior_olive):
-    PLAST1 = True  # PF-PC ex
-    PLAST2 = True  # MF-DCN ex
-    PLAST3 = True  # PC-DCN
+    # PLAST1 PF-PC ex
+    # PLAST2 MF-DCN ex
+    # PLAST3 PC-DCN
+    PLAST1 = PLAST2 = PLAST3 = False
 
     LTP1 = 0.1
     LTD1 = -1.0
