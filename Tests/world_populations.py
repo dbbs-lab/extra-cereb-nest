@@ -18,7 +18,7 @@ class Planner(PopView):
                 "trial_length": trial_len,
                 "target": 0.0,
                 "prism_deviation": float(prism),
-                "baseline_rate": 30.0,
+                "baseline_rate": 20.0,
                 "gain_rate": 1.0,
                 }
             )
