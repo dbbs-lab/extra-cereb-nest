@@ -66,7 +66,7 @@ def create_cerebellum(inferior_olive):
     LTP3 = 1e-7
     LTD3 = 1e-6
 
-    Init_PFPC = 1.0
+    Init_PFPC = 15.0
     Init_MFDCN = 0.4
     Init_PCDCN = -1.0
 
