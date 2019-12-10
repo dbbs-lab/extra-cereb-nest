@@ -67,7 +67,7 @@ def create_cerebellum(inferior_olive):
     LTD3 = 1e-6
 
     Init_PFPC = 15.0
-    Init_MFDCN = 0.4
+    Init_MFDCN = 0.01
     Init_PCDCN = -1.0
 
     MF = nest.Create("parrot_neuron", MF_number)
