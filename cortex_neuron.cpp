@@ -191,7 +191,7 @@ mynest::cortex_neuron::update( nest::Time const& origin, const long from, const 
       baseline_rate = std::max( 0.0, in_rate );
     }
 
-    double rate = baseline_rate * exp(-pow(((desired - mean) / sdev), 2 ));
+    double rate = baseline_rate * (1.0 + exp(-pow(((desired - mean) / sdev), 2 )));
 
     V_.poisson_dev_.set_lambda( time_res * rate * 1e-3 );
 
