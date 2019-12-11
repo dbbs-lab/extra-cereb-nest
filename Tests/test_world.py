@@ -111,7 +111,7 @@ def plot_integration():
 
     for j in range(4):
         q_ts, qdd, qd, q = cortex.joints[j].states[0]
-        axs[3, j].scatter(q_ts, qdd, marker='.')
+        axs[3, j].scatter(q_ts, qdd, marker='.', s=1)
         axs[4, j].plot(q_ts, qd)
         axs[5, j].plot(q_ts, q)
 
@@ -209,11 +209,11 @@ def plot_mIO_correction(n_trials, prism_values):
 
 
 def main():
-    # plot_integration()
+    plot_integration()
     # plot_integrate_cortex()
     # plot_trajectories(10)
     # plot_prism(4, range(-25, 30, 5))
-    test_learning()
+    # test_learning()
     # plot_mIO_correction(5, range(-10, 25, 5))
 
 

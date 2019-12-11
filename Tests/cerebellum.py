@@ -66,9 +66,9 @@ def create_cerebellum(inferior_olive):
     LTP3 = 1e-7
     LTD3 = 1e-6
 
-    Init_PFPC = 15.0
-    Init_MFDCN = 0.01
-    Init_PCDCN = -1.0
+    Init_PFPC = 16.0
+    Init_MFDCN = 0.009
+    Init_PCDCN = -0.001
 
     MF = nest.Create("parrot_neuron", MF_number)
     GR = nest.Create("granular_neuron", GR_number)
@@ -96,7 +96,7 @@ def create_cerebellum(inferior_olive):
                       "multapses": False}
 
     MFGR_syn_dict = {"model": "static_synapse",
-                     "weight": 0.75,
+                     "weight": 0.6,
                      "delay": 1.0}
 
     nest.Connect(MF, GR, MFGR_conn_dict, MFGR_syn_dict)

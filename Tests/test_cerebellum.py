@@ -135,9 +135,18 @@ def test_initial_rates():
     print("Forward DCN rate:", cereb_for.dcn.get_rate())
     print("Inverse DCN rate:", cereb_inv.dcn.get_rate())
 
-    # fig, axs = plt.subplots(2)
+    # fig, axs = plt.subplots(4)
     # cereb_for.mf.plot_spikes('Forward MF', axs[0])
-    # cereb_inv.mf.plot_spikes('Inverse MF', axs[1])
+    # cereb_for.gr.plot_spikes('Forward GR', axs[1])
+    # cereb_for.pc.plot_spikes('Forward PC', axs[2])
+    # cereb_for.dcn.plot_spikes('Forward DCN', axs[3])
+    # plt.show()
+
+    # fig, axs = plt.subplots(4)
+    # cereb_inv.mf.plot_spikes('Inverse MF', axs[0])
+    # cereb_inv.gr.plot_spikes('Inverse GR', axs[1])
+    # cereb_inv.pc.plot_spikes('Inverse PC', axs[2])
+    # cereb_inv.dcn.plot_spikes('Inverse DCN', axs[3])
     # plt.show()
 
 

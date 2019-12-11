@@ -42,7 +42,7 @@ class Cortex(PopView):
                 "trial_length": trial_len,
                 "fibers_per_joint": n//4,
                 "rbf_sdev": n/8,
-                "baseline_rate": 20.0,
+                "baseline_rate": 7.0,
                 "gain_rate": 4.0,
                 }
             )
