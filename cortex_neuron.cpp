@@ -34,8 +34,8 @@ mynest::cortex_neuron::Parameters_::Parameters_()
   , fiber_id_( 0 )
   , fibers_per_joint_( 100 )
   , rbf_sdev_( 10.0 )
-  , baseline_rate_( 10.0 )
-  , gain_rate_( 10.0 )
+  , baseline_rate_( 20.0 )
+  , gain_rate_( 3.0 )
   , to_file_( false )
 {
 }
@@ -182,16 +182,21 @@ mynest::cortex_neuron::update( nest::Time const& origin, const long from, const 
     double desired = P_.fibers_per_joint_ * B_.traj_[P_.joint_id_][(int)(tick * time_res) % P_.trial_length_];
 
     double baseline_rate;
+    double rbf_rate;
     int j_id = P_.joint_id_;
 
     baseline_rate = P_.baseline_rate_;
 
     if ( j_id == 1 )  // Second joint
     {
-      baseline_rate = std::max( 0.0, in_rate );
+      rbf_rate = P_.gain_rate_ * std::max( 0.0, in_rate );
+    }
+    else
+    {
+      rbf_rate = P_.gain_rate_ * baseline_rate;
     }
 
-    double rate = baseline_rate * (1.0 + exp(-pow(((desired - mean) / sdev), 2 )));
+    double rate = baseline_rate + rbf_rate * exp(-pow(((desired - mean) / sdev), 2 ));
 
     V_.poisson_dev_.set_lambda( time_res * rate * 1e-3 );
 
