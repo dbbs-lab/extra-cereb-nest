@@ -150,11 +150,11 @@ class SensoryIO(PopView):
 
 class MotorIO(PopView):
     def __init__(self, n, sensory_error=0.0):
-        motor_io = nest.Create('spike_generator', n=n*2)
+        motor_io = nest.Create('spike_generator', n=n)
         super().__init__(motor_io)
 
-        self.plus = self.slice(0, n)  # [0:n]
-        self.minus = self.slice(n)    # [n:]
+        self.plus = self.slice(0, n//2)  # [0:n]
+        self.minus = self.slice(n//2)    # [n:]
 
         self.set_rate(sensory_error)
 
