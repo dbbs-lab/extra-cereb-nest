@@ -158,7 +158,7 @@ class MotorIO(PopView):
 
         self.set_rate(sensory_error)
 
-    def set_rate(self, sensory_error):
+    def set_rate(self, sensory_error, trial_i=0):
         def make_template(upside=False):
             q_in = np.array((10.0, -10.0, -90.0, 170.0))
             q_out = np.array((0.0, 0.0, 0.0, 0.0))
@@ -181,7 +181,7 @@ class MotorIO(PopView):
             for t, f in enumerate(m_io_freqs):
                 n_spikes = np.random.poisson(f)
                 if n_spikes:
-                    m_io_ts.append(float(t+1))
+                    m_io_ts.append(float(t+1 + trial_i*trial_len))
 
             return m_io_ts
 

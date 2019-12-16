@@ -75,9 +75,9 @@ def test_learning():
     nest.ResetKernel()
     cortex, cereb_for, cereb_inv = create_brain(prism)
 
-    for i in range(1):
+    for i in range(3):
         cereb_for.io.set_rate(sensory_error)
-        cereb_inv.io.set_rate(sensory_error)
+        cereb_inv.io.set_rate(sensory_error, trial_i=i)
 
         nest.Simulate(trial_len)
 
@@ -101,12 +101,14 @@ def test_learning():
 
     print('Forward DCN rate:', cereb_for.dcn.get_rate())
 
-    fig, axs = plt.subplots(4)
-    cereb_for.io.plot_spikes('Forward IO', axs[0])
-    cereb_for.dcn.plot_spikes('Forward DCN', axs[1])
+    fig, axs = plt.subplots(6)
+    cereb_for.io.plot_spikes('f IO', axs[0])
+    cereb_for.pc.plot_spikes('f PC', axs[1])
+    cereb_for.dcn.plot_spikes('f DCN', axs[2])
 
-    cereb_inv.io.plot_spikes('Inverse IO', axs[2])
-    cereb_inv.dcn.plot_spikes('Inverse DCN', axs[3])
+    cereb_inv.io.plot_spikes('i IO', axs[3])
+    cereb_inv.pc.plot_spikes('i PC', axs[4])
+    cereb_inv.dcn.plot_spikes('i DCN', axs[5])
 
     plt.show()
 
@@ -159,8 +161,8 @@ def test_creation():
 
 def main():
     # test_creation()
-    # test_learning()
-    test_initial_rates()
+    test_learning()
+    # test_initial_rates()
 
 
 if __name__ == '__main__':
