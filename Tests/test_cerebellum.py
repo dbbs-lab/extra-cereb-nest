@@ -21,11 +21,11 @@ trial_len = 300
 
 
 @contextmanager
-def timing():
+def timing(label=""):
     t0 = time()
     yield None
     dt = time() - t0
-    print("%.2fs" % dt)
+    print(label + " %.2fs" % dt)
 
 
 def create_brain(prism):
@@ -75,11 +75,12 @@ def test_learning():
     nest.ResetKernel()
     cortex, cereb_for, cereb_inv = create_brain(prism)
 
-    for i in range(3):
+    for i in range(1):
         cereb_for.io.set_rate(sensory_error)
         cereb_inv.io.set_rate(sensory_error, trial_i=i)
 
-        nest.Simulate(trial_len)
+        with timing("Trial time"):
+            nest.Simulate(trial_len)
 
         cortex.integrate(trial_i=i)
         x_cortex, std = cortex.get_final_x()
@@ -101,14 +102,16 @@ def test_learning():
 
     print('Forward DCN rate:', cereb_for.dcn.get_rate())
 
-    fig, axs = plt.subplots(6)
-    cereb_for.io.plot_spikes('f IO', axs[0])
-    cereb_for.pc.plot_spikes('f PC', axs[1])
-    cereb_for.dcn.plot_spikes('f DCN', axs[2])
+    fig, axs = plt.subplots(8)
+    cereb_for.mf.plot_spikes('f MF', axs[0])
+    cereb_for.io.plot_spikes('f IO', axs[1])
+    cereb_for.pc.plot_spikes('f PC', axs[2])
+    cereb_for.dcn.plot_spikes('f DCN', axs[3])
 
-    cereb_inv.io.plot_spikes('i IO', axs[3])
-    cereb_inv.pc.plot_spikes('i PC', axs[4])
-    cereb_inv.dcn.plot_spikes('i DCN', axs[5])
+    cereb_inv.mf.plot_spikes('i MF', axs[4])
+    cereb_inv.io.plot_spikes('i IO', axs[5])
+    cereb_inv.pc.plot_spikes('i PC', axs[6])
+    cereb_inv.dcn.plot_spikes('i DCN', axs[7])
 
     plt.show()
 

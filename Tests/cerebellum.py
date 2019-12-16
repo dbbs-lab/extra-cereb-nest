@@ -58,6 +58,7 @@ def create_cerebellum(inferior_olive):
     # PLAST2 MF-DCN ex
     # PLAST3 PC-DCN
     PLAST1 = PLAST2 = PLAST3 = False
+    PLAST1 = True
 
     LTP1 = 0.1
     LTD1 = -1.0
@@ -127,7 +128,7 @@ def create_cerebellum(inferior_olive):
                          {"A_minus":   LTD1,
                           "A_plus":    LTP1,
                           "Wmin":      0.0,
-                          "Wmax":      4.0,
+                          "Wmax":      30.0,
                           "vt":        vt1[0],
                           # "weight_recorder": w_PFPC[0]
                           })
@@ -150,7 +151,9 @@ def create_cerebellum(inferior_olive):
         PFPC_syn_dict = {"model":  "static_synapse",
                          "weight": Init_PFPC, "delay":  1.0}
 
-        nest.Connect(GR, PC, PFPC_conn_dict, PFPC_syn_dict)
+        # nest.Connect(GR, PC, PFPC_conn_dict, PFPC_syn_dict)
+        for i, PCi in enumerate(PC):
+            nest.Connect(GR, [PCi], PFPC_conn_dict, PFPC_syn_dict)
 
     if PLAST2:
         vt2 = nest.Create("volume_transmitter_alberto", DCN_number)
