@@ -126,13 +126,13 @@ class SensoryIO(PopView):
     def __init__(self, n, sensory_error=0.0):
         sensory_io = nest.Create(
             'poisson_generator',
-            n=n*2,
+            n=n,
             params={"rate": 0.0}
         )
         super().__init__(sensory_io)
 
-        self.minus = self.slice(0, n)
-        self.plus = self.slice(n)
+        self.minus = self.slice(0, n//2)
+        self.plus = self.slice(n//2)
 
         self.set_rate(sensory_error)
 
