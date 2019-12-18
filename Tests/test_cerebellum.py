@@ -75,12 +75,18 @@ def test_learning():
     nest.ResetKernel()
     cortex, cereb_for, cereb_inv = create_brain(prism)
 
-    for i in range(1):
+    for i in range(4):
         cereb_for.io.set_rate(sensory_error)
         cereb_inv.io.set_rate(sensory_error, trial_i=i)
 
+        print("Simulating")
         with timing("Trial time"):
             nest.Simulate(trial_len)
+        print()
+
+        print("Forward IO rate:", cereb_for.io.get_rate())
+        print("Inverse IO rate:", cereb_inv.io.get_rate())
+        print()
 
         cortex.integrate(trial_i=i)
         x_cortex, std = cortex.get_final_x()
@@ -112,7 +118,12 @@ def test_learning():
     cereb_inv.io.plot_spikes('i IO', axs[5])
     cereb_inv.pc.plot_spikes('i PC', axs[6])
     cereb_inv.dcn.plot_spikes('i DCN', axs[7])
+    plt.show()
 
+    conns = nest.GetConnections(cereb_inv.gr.pop, cereb_inv.pc.pop)
+    weights = nest.GetStatus(conns, "weight")
+    # print(weights)
+    plt.plot(weights)
     plt.show()
 
 

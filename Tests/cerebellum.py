@@ -82,12 +82,12 @@ def create_cerebellum(inferior_olive):
 
     # Weights recorder
     rec_params = {
-        "to_memory": False,
-        "to_file":    True,
+        "to_memory": True,
+        "to_file":   False,
         "label":     "PFPC",
-        "senders":    GR,
-        "targets":    PC,
-        "precision":  8
+        "senders":   GR,
+        "targets":   PC,
+        "precision": 8
     }
     w_PFPC = nest.Create('weight_recorder', params=rec_params)
 
