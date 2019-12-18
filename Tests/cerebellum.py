@@ -81,15 +81,15 @@ def create_cerebellum(inferior_olive):
         IO = nest.Create("olivary_neuron", IO_number)
 
     # Weights recorder
-    # rec_params = {
-    #     "to_memory": False,
-    #     "to_file":    True,
-    #     "label":     "PFPC",
-    #     "senders":    GR,
-    #     "targets":    PC,
-    #     "precision":  8
-    # }
-    # w_PFPC = nest.Create('weight_recorder', params=rec_params)
+    rec_params = {
+        "to_memory": False,
+        "to_file":    True,
+        "label":     "PFPC",
+        "senders":    GR,
+        "targets":    PC,
+        "precision":  8
+    }
+    w_PFPC = nest.Create('weight_recorder', params=rec_params)
 
     # MFGR
     MFGR_conn_dict = {'rule': 'fixed_indegree',
@@ -130,7 +130,7 @@ def create_cerebellum(inferior_olive):
                           "Wmin":      0.0,
                           "Wmax":      30.0,
                           "vt":        vt1[0],
-                          # "weight_recorder": w_PFPC[0]
+                          "weight_recorder": w_PFPC[0]
                           })
 
         PFPC_conn_dict = {'rule': 'fixed_indegree',
