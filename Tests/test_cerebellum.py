@@ -61,6 +61,8 @@ def create_brain(prism):
 
 
 def test_learning():
+    FORWARD = True
+    INVERSE = True
     prism = 25.0
 
     # Get open loop error
@@ -76,55 +78,71 @@ def test_learning():
     cortex, cereb_for, cereb_inv = create_brain(prism)
 
     for i in range(4):
-        cereb_for.io.set_rate(sensory_error)
-        cereb_inv.io.set_rate(sensory_error, trial_i=i)
+        if FORWARD:
+            cereb_for.io.set_rate(sensory_error)
+        if INVERSE:
+            cereb_inv.io.set_rate(sensory_error, trial_i=i)
 
         print("Simulating")
         with timing("Trial time"):
             nest.Simulate(trial_len)
         print()
 
-        print("Forward IO rate:", cereb_for.io.get_rate())
-        print("Inverse IO rate:", cereb_inv.io.get_rate())
+        if FORWARD:
+            print("Forward IO rate:", cereb_for.io.get_rate())
+        if INVERSE:
+            print("Inverse IO rate:", cereb_inv.io.get_rate())
         print()
 
         cortex.integrate(trial_i=i)
         x_cortex, std = cortex.get_final_x()
 
-        cereb_inv.dcn.plus.integrate(trial_i=i)
-        cereb_inv.dcn.minus.integrate(trial_i=i)
+        if INVERSE:
+            cereb_inv.dcn.plus.integrate(trial_i=i)
+            cereb_inv.dcn.minus.integrate(trial_i=i)
 
-        x_dcnp, _ = cereb_inv.dcn.plus.get_final_x()
-        x_dcnn, _ = cereb_inv.dcn.minus.get_final_x()
+            x_dcnp, _ = cereb_inv.dcn.plus.get_final_x()
+            x_dcnn, _ = cereb_inv.dcn.minus.get_final_x()
 
-        x_sum = x_cortex + x_dcnp - x_dcnn
+            print("Contributions from inverse DCN:")
+            print("Positive:", x_dcnp)
+            print("Negative:", x_dcnn)
+
+            x_sum = x_cortex + x_dcnp - x_dcnn
+        else:
+            x_sum = x_cortex
 
         sensory_error, std_deg = world.get_error(ref_mean, x_sum, std)
         print("Closed loop error %d:" % i, sensory_error)
 
-        print("Contributions from inverse DCN:")
-        print("Positive:", x_dcnp)
-        print("Negative:", x_dcnn)
+    if FORWARD:
+        print('Forward DCN rate:', cereb_for.dcn.get_rate())
 
-    print('Forward DCN rate:', cereb_for.dcn.get_rate())
+    if FORWARD:
+        fig, axs = plt.subplots(5)
+        cereb_for.mf.plot_spikes('f MF', axs[0])
+        cereb_for.io.plot_spikes('f IO', axs[1])
+        cereb_for.pc.plot_spikes('f PC', axs[2])
+        cereb_for.dcn.plot_spikes('f DCN', axs[3])
 
-    fig, axs = plt.subplots(8)
-    cereb_for.mf.plot_spikes('f MF', axs[0])
-    cereb_for.io.plot_spikes('f IO', axs[1])
-    cereb_for.pc.plot_spikes('f PC', axs[2])
-    cereb_for.dcn.plot_spikes('f DCN', axs[3])
+        conns = nest.GetConnections(cereb_for.gr.pop, cereb_for.pc.pop)
+        weights = nest.GetStatus(conns, "weight")
+        axs[4].plot(weights)
 
-    cereb_inv.mf.plot_spikes('i MF', axs[4])
-    cereb_inv.io.plot_spikes('i IO', axs[5])
-    cereb_inv.pc.plot_spikes('i PC', axs[6])
-    cereb_inv.dcn.plot_spikes('i DCN', axs[7])
-    plt.show()
+        plt.show()
 
-    conns = nest.GetConnections(cereb_inv.gr.pop, cereb_inv.pc.pop)
-    weights = nest.GetStatus(conns, "weight")
-    # print(weights)
-    plt.plot(weights)
-    plt.show()
+    if INVERSE:
+        fig, axs = plt.subplots(5)
+        cereb_inv.mf.plot_spikes('i MF', axs[0])
+        cereb_inv.io.plot_spikes('i IO', axs[1])
+        cereb_inv.pc.plot_spikes('i PC', axs[2])
+        cereb_inv.dcn.plot_spikes('i DCN', axs[3])
+
+        conns = nest.GetConnections(cereb_inv.gr.pop, cereb_inv.pc.pop)
+        weights = nest.GetStatus(conns, "weight")
+        axs[4].plot(weights)
+
+        plt.show()
 
 
 def test_initial_rates():
