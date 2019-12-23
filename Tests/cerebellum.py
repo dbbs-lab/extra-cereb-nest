@@ -2,9 +2,11 @@ import numpy as np
 from collections import namedtuple
 import nest
 from population_view import PopView
-from world_populations import SensoryIO, MotorIO, DirectDCN, InverseDCN
+from world_populations import SensoryIO, MotorIO, DirectDCN, InverseDCN, DebugIO
 
 Cerebellum = namedtuple("Cerebellum", "mf gr pc io dcn")
+
+cereb_index = 0
 
 MF_number = 360*2
 GR_number = MF_number
@@ -60,7 +62,8 @@ def create_cerebellum(inferior_olive):
     PLAST1 = PLAST2 = PLAST3 = False
     PLAST1 = True
 
-    LTP1 = 0.1
+    # LTP1 = 0.1
+    LTP1 = 0.0
     LTD1 = -1.0
     LTP2 = 1e-5
     LTD2 = -1e-6
@@ -124,7 +127,12 @@ def create_cerebellum(inferior_olive):
         nest.Connect(IOn_presyn, vt1[PC_number//2:],
                      "one_to_one", syn_spec=vt1_syn_dict)
 
-        nest.SetDefaults('stdp_synapse_sinexp',
+        global cereb_index
+        cereb_index += 1
+        syn_name = 'stdp_synapse_sinexp_' + str(cereb_index)
+        nest.CopyModel('stdp_synapse_sinexp', syn_name)
+
+        nest.SetDefaults(syn_name,
                          {"A_minus":   LTD1,
                           "A_plus":    LTP1,
                           "Wmin":      0.0,
@@ -137,7 +145,7 @@ def create_cerebellum(inferior_olive):
                           'indegree': int(0.8*GR_number),
                           "multapses": False}
 
-        PFPC_syn_dict = {"model":  'stdp_synapse_sinexp',
+        PFPC_syn_dict = {"model":  syn_name,
                          "weight": Init_PFPC, "delay":  1.0}
 
         for i, PCi in enumerate(PC):
@@ -230,7 +238,8 @@ def create_cerebellum(inferior_olive):
 
 
 def create_forward_cerebellum():
-    sIO = SensoryIO(IO_number)
+    # sIO = SensoryIO(IO_number)
+    sIO = DebugIO(IO_number)
     MF, GR, PC, IO, DCN = create_cerebellum(sIO)
 
     return Cerebellum(
@@ -240,7 +249,8 @@ def create_forward_cerebellum():
 
 
 def create_inverse_cerebellum():
-    mIO = MotorIO(IO_number)
+    # mIO = MotorIO(IO_number)
+    mIO = DebugIO(IO_number)
     MF, GR, PC, IO, DCN = create_cerebellum(mIO)
 
     return Cerebellum(

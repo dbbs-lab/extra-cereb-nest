@@ -31,10 +31,13 @@ def timing(label=""):
 def create_brain(prism):
     trajectories.save_file(prism, trial_len)
 
+    define_models()
+    cereb_inv = create_inverse_cerebellum()
+    cereb_for = create_forward_cerebellum()
+    # cereb_foo = create_forward_cerebellum()
+
     planner = Planner(MF_number, prism)
     cortex = Cortex(MF_number)
-
-    define_models()
 
     planner.connect(cortex)
 
@@ -42,7 +45,6 @@ def create_brain(prism):
     # - motor input from the cortex (efference copy)
     # - sensory output to the cortex
     # - sensory error signal
-    cereb_for = create_forward_cerebellum()
     cortex.connect(cereb_for.mf)  # Efference copy
 
     fDCN = cereb_for.dcn
@@ -54,7 +56,6 @@ def create_brain(prism):
     # - sensory input from planner
     # - motor output to world
     # - motor error signal
-    cereb_inv = create_inverse_cerebellum()
     planner.connect(cereb_inv.mf)  # Sensory input
 
     return cortex, cereb_for, cereb_inv
@@ -77,11 +78,13 @@ def test_learning():
     nest.ResetKernel()
     cortex, cereb_for, cereb_inv = create_brain(prism)
 
-    for i in range(4):
+    for i in range(1):
         if FORWARD:
             cereb_for.io.set_rate(sensory_error)
+            # nest.SetStatus(cereb_for.io.pop, {"rate": 50.0})
         if INVERSE:
-            cereb_inv.io.set_rate(sensory_error, trial_i=i)
+            # cereb_inv.io.set_rate(sensory_error, trial_i=i)
+            nest.SetStatus(cereb_for.io.pop, {"rate": 50.0})
 
         print("Simulating")
         with timing("Trial time"):
@@ -127,7 +130,15 @@ def test_learning():
 
         conns = nest.GetConnections(cereb_for.gr.pop, cereb_for.pc.pop)
         weights = nest.GetStatus(conns, "weight")
+        print("Minimum weight at PFPC:", min(weights))
         axs[4].plot(weights)
+
+        print()
+        print("Forward MF rate:", cereb_for.mf.get_rate())
+        print("Forward GR rate:", cereb_for.gr.get_rate())
+        print("Forward PC rate:", cereb_for.pc.get_rate())
+        print("Inverse PC rate:", cereb_inv.pc.get_rate())
+        print("Inverse DCN rate:", cereb_inv.dcn.get_rate())
 
         plt.show()
 
@@ -140,7 +151,14 @@ def test_learning():
 
         conns = nest.GetConnections(cereb_inv.gr.pop, cereb_inv.pc.pop)
         weights = nest.GetStatus(conns, "weight")
+        print("Minimum weight at PFPC:", min(weights))
         axs[4].plot(weights)
+
+        print()
+        print("Inverse MF rate:", cereb_inv.mf.get_rate())
+        print("Inverse GR rate:", cereb_inv.gr.get_rate())
+        print("Inverse PC rate:", cereb_inv.pc.get_rate())
+        print("Inverse DCN rate:", cereb_inv.dcn.get_rate())
 
         plt.show()
 

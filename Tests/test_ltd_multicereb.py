@@ -12,6 +12,8 @@ except Exception as e:  # DynamicModuleManagementError
     print(e)
     print("Albertomodule already installed")
 
+cereb_index = 0
+
 trial_len = 300
 # CEREBELLUM
 PLAST1 = True   # PF-PC ex
@@ -111,7 +113,13 @@ def create_cerebellum():
     # A_plus - Amplitude of weight change for facilitation
     # Wmin - Minimal synaptic weight
     # Wmax - Maximal synaptic weight
-    nest.SetDefaults('stdp_synapse_sinexp',
+
+    global cereb_index
+    cereb_index += 1
+    syn_name = 'stdp_synapse_sinexp_' + str(cereb_index)
+    nest.CopyModel('stdp_synapse_sinexp', syn_name)
+
+    nest.SetDefaults(syn_name,
                      {"A_minus":   LTD1,
                       "A_plus":    LTP1,
                       "Wmin":      0.0,
@@ -119,7 +127,7 @@ def create_cerebellum():
                       "vt":        vt[0],
                       "weight_recorder": PFPC_recorder[0]})
 
-    PFPC_conn_param = {"model":  'stdp_synapse_sinexp',
+    PFPC_conn_param = {"model":  syn_name,
                        "weight": Init_PFPC,
                        "delay":  1.0}
 
