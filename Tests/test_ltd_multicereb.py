@@ -12,7 +12,7 @@ except Exception as e:  # DynamicModuleManagementError
     print(e)
     print("Albertomodule already installed")
 
-trial_len = 1000
+trial_len = 300
 # CEREBELLUM
 PLAST1 = True   # PF-PC ex
 LTP1 = 0.0
@@ -36,8 +36,6 @@ def define_models():
     nest.CopyModel('iaf_cond_exp', 'olivary_neuron')
     nest.CopyModel('iaf_cond_exp', 'nuclear_neuron')
 
-
-def create_cerebellum():
     nest.SetDefaults('granular_neuron', {'t_ref': 1.0,
                                          'C_m': 2.0,
                                          'V_th': -40.0,
@@ -70,6 +68,8 @@ def create_cerebellum():
                                         'tau_syn_ex': 0.5,
                                         'tau_syn_in': 10.0})
 
+
+def create_cerebellum():
     # Cell numbers
     MF_num = 10
     GR_num = 100
@@ -83,28 +83,23 @@ def create_cerebellum():
     IO = nest.Create("olivary_neuron", IO_num)
     DCN = nest.Create("nuclear_neuron", DCN_num)
 
-    if PLAST1:
-        vt = nest.Create("volume_transmitter_alberto", PC_num)
-        for n, vti in enumerate(vt):
-            nest.SetStatus([vti], {"vt_num": n})
+    vt = nest.Create("volume_transmitter_alberto", PC_num)
+    for n, vti in enumerate(vt):
+        nest.SetStatus([vti], {"vt_num": n})
 
-    recdict2 = {"to_memory": True,
+    rec_dict = {"to_memory": True,
                 "to_file":   False,
                 "label":     "PFPC_",
                 "senders":   GR,
                 "targets":   PC}
 
-    WeightPFPC = nest.Create('weight_recorder', params=recdict2)
+    PFPC_recorder = nest.Create('weight_recorder', params=rec_dict)
 
     MFGR_conn_param = {"model": "static_synapse",
                        "weight": {'distribution': 'uniform',
                                   # -> 0.75 GR fire at 7 Hz
                                   'low': 0.07, 'high': 0.15},
                        "delay": 1.0}
-
-    PCDCN_conn_param = {"model": "static_synapse",
-                        "weight": Init_PCDCN,
-                        "delay": 1.0}
 
     # MF-GR excitatory fixed connections
     # each GR receives 4 connections from 4 random granule cells
@@ -116,82 +111,35 @@ def create_cerebellum():
     # A_plus - Amplitude of weight change for facilitation
     # Wmin - Minimal synaptic weight
     # Wmax - Maximal synaptic weight
-    if PLAST1:
-        nest.SetDefaults('stdp_synapse_sinexp',
-                         {"A_minus":   LTD1,
-                          "A_plus":    LTP1,
-                          "Wmin":      0.0,
-                          "Wmax":      40.0,
-                          "vt":        vt[0],
-                          "weight_recorder": WeightPFPC[0]})
+    nest.SetDefaults('stdp_synapse_sinexp',
+                     {"A_minus":   LTD1,
+                      "A_plus":    LTP1,
+                      "Wmin":      0.0,
+                      "Wmax":      40.0,
+                      "vt":        vt[0],
+                      "weight_recorder": PFPC_recorder[0]})
 
-        PFPC_conn_param = {"model":  'stdp_synapse_sinexp',
-                           "weight": Init_PFPC,
-                           "delay":  1.0}
+    PFPC_conn_param = {"model":  'stdp_synapse_sinexp',
+                       "weight": Init_PFPC,
+                       "delay":  1.0}
 
-        # PF-PC excitatory plastic connections
-        # each PC receives the random 80% of the GR
-
-        for i, PCi in enumerate(PC):
-            nest.Connect(GR, [PCi],
-                         {'rule': 'fixed_indegree',
-                          'indegree': int(0.8*GR_num),
-                          "multapses": False},
-                         PFPC_conn_param)
-            A = nest.GetConnections(GR, [PCi])
-            nest.SetStatus(A, {'vt_num': float(i)})
-
-    else:
-        PFPC_conn_param = {"model":  "static_synapse",
-                           "weight": Init_PFPC,
-                           "delay":  1.0}
-        nest.Connect(GR, PC,
+    # PF-PC excitatory plastic connections
+    # each PC receives the random 80% of the GR
+    for i, PCi in enumerate(PC):
+        PFPC_conn_param['vt_num'] = float(i)
+        nest.Connect(GR, [PCi],
                      {'rule': 'fixed_indegree',
                       'indegree': int(0.8*GR_num),
                       "multapses": False},
                      PFPC_conn_param)
 
-    if PLAST1:
-        # IO-PC teaching connections
-        # Each IO is one-to-one connected with each PC
-        nest.Connect(IO, vt, {'rule': 'one_to_one'},
-                     {"model": "static_synapse",
-                      "weight": 1.0, "delay": 1.0})
-        nest.GetConnections(IO, vt)  # IOPC_conn
+    # IO-PC teaching connections
+    # Each IO is one-to-one connected with each PC
+    nest.Connect(IO, vt, {'rule': 'one_to_one'},
+                 {"model": "static_synapse",
+                  "weight": 1.0, "delay": 1.0})
 
-    MFDCN_conn_param = {"model":  "static_synapse",
-                        "weight": Init_MFDCN,
-                        "delay":  10.0}
-
-    nest.Connect(MF, DCN, 'all_to_all', MFDCN_conn_param)
-    nest.GetConnections(MF, DCN)  # MFDCN_conn
-
-    # PC-DCN inhibitory plastic connections
-    # each DCN receives 2 connections from 2 contiguous PC
-    count_DCN = 0
-    for P in range(PC_num):
-        nest.Connect([PC[P]], [DCN[count_DCN]],
-                     'one_to_one', PCDCN_conn_param)
-        if P % 2 == 1:
-            count_DCN += 1
-
-    nest.GetConnections(PC, DCN)  # PCDCN_conn
-    # circuit = MF + PC + IO + DCN
-    # return circuit
     return MF, GR, PC, IO, DCN
-
-
-def get_spike_events(spike_detector):
-    dSD = nest.GetStatus(spike_detector, keys="events")[0]
-    evs = dSD["senders"]
-    ts = dSD["times"]
-    return evs, ts
-
-
-def get_rate(spike_detector, pop):
-    rate = nest.GetStatus(spike_detector, keys="n_events")[0] * 1e3 / trial_len
-    rate /= len(pop)
-    return rate
 
 
 def connect_noise(cereb):
