@@ -65,7 +65,7 @@ def test_learning():
     FORWARD = True
     INVERSE = True
     prism = 25.0
-    n_trials = 5
+    n_trials = 10
 
     error_history = []
 
@@ -123,15 +123,32 @@ def test_learning():
         error_history.append(sensory_error)
         print("Closed loop error %d:" % i, sensory_error)
 
+        print()
+        print("Forward MF rate:", cereb_for.mf.get_per_trial_rate())
+        print("Forward GR rate:", cereb_for.gr.get_per_trial_rate())
+        print("Forward PC rate:", cereb_for.pc.get_per_trial_rate())
+        print("Forward DCN rate:", cereb_for.dcn.get_per_trial_rate())
+
+        print()
+        print("Inverse MF rate:", cereb_inv.mf.get_per_trial_rate())
+        print("Inverse GR rate:", cereb_inv.gr.get_per_trial_rate())
+        print("Inverse PC rate:", cereb_inv.pc.get_per_trial_rate())
+        print("Inverse DCN rate:", cereb_inv.dcn.get_per_trial_rate())
+
     if FORWARD:
         print('Forward DCN rate:', cereb_for.dcn.get_rate())
 
     if FORWARD:
         fig, axs = plt.subplots(5)
-        cereb_for.mf.plot_spikes('f MF', axs[0])
-        cereb_for.io.plot_spikes('f IO', axs[1])
-        cereb_for.pc.plot_spikes('f PC', axs[2])
-        cereb_for.dcn.plot_spikes('f DCN', axs[3])
+        #   cereb_for.mf.plot_spikes('f MF', axs[0])
+        #   cereb_for.io.plot_spikes('f IO', axs[1])
+        #   cereb_for.pc.plot_spikes('f PC', axs[2])
+        #   cereb_for.dcn.plot_spikes('f DCN', axs[3])
+
+        cereb_for.mf.plot_per_trial_rates('f MF', axs[0])
+        cereb_for.io.plot_per_trial_rates('f IO', axs[1])
+        cereb_for.pc.plot_per_trial_rates('f PC', axs[2])
+        cereb_for.dcn.plot_per_trial_rates('f DCN', axs[3])
 
         conns = nest.GetConnections(cereb_for.gr.pop, cereb_for.pc.pop)
         weights = nest.GetStatus(conns, "weight")
@@ -150,10 +167,15 @@ def test_learning():
 
     if INVERSE:
         fig, axs = plt.subplots(5)
-        cereb_inv.mf.plot_spikes('i MF', axs[0])
-        cereb_inv.io.plot_spikes('i IO', axs[1])
-        cereb_inv.pc.plot_spikes('i PC', axs[2])
-        cereb_inv.dcn.plot_spikes('i DCN', axs[3])
+        #   cereb_inv.mf.plot_spikes('i MF', axs[0])
+        #   cereb_inv.io.plot_spikes('i IO', axs[1])
+        #   cereb_inv.pc.plot_spikes('i PC', axs[2])
+        #   cereb_inv.dcn.plot_spikes('i DCN', axs[3])
+
+        cereb_inv.mf.plot_per_trial_rates('i MF', axs[0])
+        cereb_inv.io.plot_per_trial_rates('i IO', axs[1])
+        cereb_inv.pc.plot_per_trial_rates('i PC', axs[2])
+        cereb_inv.dcn.plot_per_trial_rates('i DCN', axs[3])
 
         conns = nest.GetConnections(cereb_inv.gr.pop, cereb_inv.pc.pop)
         weights = nest.GetStatus(conns, "weight")
