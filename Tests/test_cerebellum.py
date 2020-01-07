@@ -94,6 +94,8 @@ def test_learning():
         with timing("Trial time"):
             nest.Simulate(trial_len)
         print()
+        print("Trial ", i+1)
+        print()
 
         if FORWARD:
             print("Forward IO rate:", cereb_for.io.get_rate())
