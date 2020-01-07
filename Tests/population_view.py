@@ -32,8 +32,8 @@ def plot_spikes(evs, ts, pop=None, title='', ax=None):
         plt.show()
 
 
-def get_rate(spike_detector, pop):
-    rate = nest.GetStatus(spike_detector, keys="n_events")[0] * 1e3 / trial_len
+def get_rate(spike_detector, pop, n_trials=1):
+    rate = nest.GetStatus(spike_detector, keys="n_events")[0] * 1e3 / (trial_len*n_trials)
     rate /= len(pop)
     return rate
 
@@ -52,8 +52,8 @@ class PopView:
     def get_events(self):
         return get_spike_events(self.detector)
 
-    def get_rate(self):
-        return get_rate(self.detector, self.pop)
+    def get_rate(self, n_trials=1):
+        return get_rate(self.detector, self.pop, n_trials)
 
     def plot_spikes(self, title='', ax=None):
         evs, ts = self.get_events()

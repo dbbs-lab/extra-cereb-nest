@@ -62,8 +62,7 @@ def create_cerebellum(inferior_olive):
     PLAST1 = PLAST2 = PLAST3 = False
     PLAST1 = True
 
-    # LTP1 = 0.1
-    LTP1 = 0.0
+    LTP1 = 0.1
     LTD1 = -1.0
     LTP2 = 1e-5
     LTD2 = -1e-6
