@@ -63,9 +63,9 @@ def create_brain(prism):
 
 def test_learning():
     FORWARD = True
-    INVERSE = True
+    INVERSE = False
     prism = 25.0
-    n_trials = 10
+    n_trials = 5
 
     error_history = []
 
@@ -74,7 +74,6 @@ def test_learning():
 
     mean, std = world.run_open_loop(MF_number, prism)
     sensory_error, std_deg = world.get_error(ref_mean, mean, std)
-    error_history.append(sensory_error)
 
     print("Open loop error:", sensory_error)
     #
@@ -85,22 +84,14 @@ def test_learning():
     for i in range(n_trials):
         if FORWARD:
             cereb_for.io.set_rate(sensory_error)
-            # nest.SetStatus(cereb_for.io.pop, {"rate": 50.0})
         if INVERSE:
             cereb_inv.io.set_rate(sensory_error, trial_i=i)
-            # nest.SetStatus(cereb_for.io.pop, {"rate": 50.0})
 
         print("Simulating")
         with timing("Trial time"):
             nest.Simulate(trial_len)
         print()
         print("Trial ", i+1)
-        print()
-
-        if FORWARD:
-            print("Forward IO rate:", cereb_for.io.get_rate())
-        if INVERSE:
-            print("Inverse IO rate:", cereb_inv.io.get_rate())
         print()
 
         cortex.integrate(trial_i=i)
@@ -125,17 +116,21 @@ def test_learning():
         error_history.append(sensory_error)
         print("Closed loop error %d:" % i, sensory_error)
 
-        print()
-        print("Forward MF rate:", cereb_for.mf.get_per_trial_rate())
-        print("Forward GR rate:", cereb_for.gr.get_per_trial_rate())
-        print("Forward PC rate:", cereb_for.pc.get_per_trial_rate())
-        print("Forward DCN rate:", cereb_for.dcn.get_per_trial_rate())
+        if FORWARD:
+            print()
+            print("Forward IO rate:", cereb_for.io.get_per_trial_rate())
+            print("Forward MF rate:", cereb_for.mf.get_per_trial_rate())
+            print("Forward GR rate:", cereb_for.gr.get_per_trial_rate())
+            print("Forward PC rate:", cereb_for.pc.get_per_trial_rate())
+            print("Forward DCN rate:", cereb_for.dcn.get_per_trial_rate())
 
-        print()
-        print("Inverse MF rate:", cereb_inv.mf.get_per_trial_rate())
-        print("Inverse GR rate:", cereb_inv.gr.get_per_trial_rate())
-        print("Inverse PC rate:", cereb_inv.pc.get_per_trial_rate())
-        print("Inverse DCN rate:", cereb_inv.dcn.get_per_trial_rate())
+        if INVERSE:
+            print()
+            print("Inverse IO rate:", cereb_inv.io.get_per_trial_rate())
+            print("Inverse MF rate:", cereb_inv.mf.get_per_trial_rate())
+            print("Inverse GR rate:", cereb_inv.gr.get_per_trial_rate())
+            print("Inverse PC rate:", cereb_inv.pc.get_per_trial_rate())
+            print("Inverse DCN rate:", cereb_inv.dcn.get_per_trial_rate())
 
     if FORWARD:
         print('Forward DCN rate:', cereb_for.dcn.get_rate())

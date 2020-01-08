@@ -2,7 +2,7 @@ import numpy as np
 from collections import namedtuple
 import nest
 from population_view import PopView
-from world_populations import SensoryIO, MotorIO, DirectDCN, InverseDCN, DebugIO
+from world_populations import SensoryIO, MotorIO, DirectDCN, InverseDCN
 
 Cerebellum = namedtuple("Cerebellum", "mf gr pc io dcn")
 
@@ -237,8 +237,7 @@ def create_cerebellum(inferior_olive):
 
 
 def create_forward_cerebellum():
-    # sIO = SensoryIO(IO_number)
-    sIO = DebugIO(IO_number)
+    sIO = SensoryIO(IO_number)
     MF, GR, PC, IO, DCN = create_cerebellum(sIO)
 
     return Cerebellum(
@@ -248,8 +247,7 @@ def create_forward_cerebellum():
 
 
 def create_inverse_cerebellum():
-    # mIO = MotorIO(IO_number)
-    mIO = DebugIO(IO_number)
+    mIO = MotorIO(IO_number)
     MF, GR, PC, IO, DCN = create_cerebellum(mIO)
 
     return Cerebellum(

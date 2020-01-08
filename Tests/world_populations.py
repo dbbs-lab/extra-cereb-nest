@@ -139,6 +139,7 @@ class SensoryIO(PopView):
     def set_rate(self, sensory_error):
         # TODO: tune scale factor
         s_io_rate = 1.0 * abs(sensory_error)
+        print("Setting sensory IO rate to ", s_io_rate)
 
         if sensory_error > 0:
             nest.SetStatus(self.plus.pop, {"rate": s_io_rate})
@@ -146,23 +147,6 @@ class SensoryIO(PopView):
         else:
             nest.SetStatus(self.plus.pop, {"rate": 0.0})
             nest.SetStatus(self.minus.pop, {"rate": s_io_rate})
-
-
-class DebugIO(PopView):
-    def __init__(self, n, sensory_error=0.0):
-        # motor_io = nest.Create('spike_generator', n=n)
-        pop = nest.Create(
-            'poisson_generator',
-            n=n,
-            params={"rate": 50.0}
-        )
-        super().__init__(pop)
-
-        self.plus = self.slice(0, n//2)  # [0:n]
-        self.minus = self.slice(n//2)    # [n:]
-
-    def set_rate(self, sensory_error, trial_i=0):
-        return
 
 
 class MotorIO(PopView):
