@@ -37,10 +37,17 @@ def run_open_loop(n, prism, n_trials=1):
 
     planner.connect(cortex)
 
-    nest.Simulate(trial_len * n_trials)
+    xs = []
 
-    cortex.integrate(n_trials)
-    mean, std = cortex.get_final_x()
+    for i in range(n_trials):
+        nest.Simulate(trial_len)
+
+        cortex.integrate(trial_i=i)
+        x, _ = cortex.get_final_x()
+        xs.append(x)
+
+    mean = np.mean(xs)
+    std = np.std(xs)
     return mean, std
 
 

@@ -1,6 +1,7 @@
 from time import time
 from contextlib import contextmanager
 from collections import namedtuple
+import numpy as np
 import matplotlib.pyplot as plt
 import nest
 import world
@@ -64,16 +65,30 @@ def create_brain(prism):
 def test_learning():
     FORWARD = True
     INVERSE = False
-    prism = 25.0
+    # prism = 25.0
+    prism = 0.0
     n_trials = 5
 
     error_history = []
 
-    # Get open loop error
-    ref_mean, ref_std = world.get_reference(MF_number)
+    # Get reference x
+    nest.ResetKernel()
+    cortex, _, _ = create_brain(0.0)
+    xs = []
 
+    for i in range(4):
+        nest.Simulate(trial_len)
+
+        cortex.integrate(trial_i=i)
+        x, std = cortex.get_final_x()
+        xs.append(x)
+
+    ref_x = np.mean(xs)
+    #
+
+    # Get open loop error
     mean, std = world.run_open_loop(MF_number, prism)
-    sensory_error, std_deg = world.get_error(ref_mean, mean, std)
+    sensory_error, std_deg = world.get_error(ref_x, mean, std)
 
     print("Open loop error:", sensory_error)
     #
@@ -112,7 +127,7 @@ def test_learning():
         else:
             x_sum = x_cortex
 
-        sensory_error, std_deg = world.get_error(ref_mean, x_sum, std)
+        sensory_error, std_deg = world.get_error(ref_x, x_sum, std)
         error_history.append(sensory_error)
         print("Closed loop error %d:" % i, sensory_error)
 
