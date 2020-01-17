@@ -64,9 +64,9 @@ def create_brain(prism):
 
 def test_learning():
     FORWARD = True
-    INVERSE = False
-    # prism = 25.0
-    prism = 0.0
+    INVERSE = True
+    prism = 20.0
+    # prism = 0.0
     n_trials = 5
 
     error_history = []
@@ -244,6 +244,59 @@ def test_initial_rates():
     # plt.show()
 
 
+def test_error():
+    prism = 20.0
+    n_trials = 5
+
+    error_history = []
+
+    # Get reference x
+    nest.ResetKernel()
+    cortex, _, _ = create_brain(0.0)
+    xs = []
+
+    for i in range(4):
+        nest.Simulate(trial_len)
+
+        cortex.integrate(trial_i=i)
+        x, std = cortex.get_final_x()
+        xs.append(x)
+
+    ref_x = np.mean(xs)
+    ref_std = np.std(xs)
+    #
+
+    # Get open loop error
+    mean, std = world.run_open_loop(MF_number, prism)
+    print("Reference mean:", ref_x, "std:", ref_std)
+
+    sensory_error, std_deg = world.get_error(ref_x, mean, std)
+    print("Open loop error:", sensory_error)
+    #
+
+    nest.ResetKernel()
+    cortex, _, _ = create_brain(prism)
+
+    for i in range(n_trials):
+        print("Simulating")
+        with timing("Trial time"):
+            nest.Simulate(trial_len)
+
+        print()
+        print("Trial ", i+1)
+
+        cortex.integrate(trial_i=i)
+        x_cortex, std = cortex.get_final_x()
+
+        sensory_error, std_deg = world.get_error(ref_x, x_cortex, std)
+        error_history.append(sensory_error)
+        print("X from cortex:", x_cortex)
+        print("Error:", sensory_error)
+
+    plt.plot(error_history)
+    plt.show()
+
+
 def test_creation():
     define_models()
 
@@ -253,8 +306,9 @@ def test_creation():
 
 def main():
     # test_creation()
-    test_learning()
     # test_initial_rates()
+    # test_learning()
+    test_error()
 
 
 if __name__ == '__main__':
