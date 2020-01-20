@@ -79,8 +79,7 @@ def test_learning():
     for i in range(4):
         nest.Simulate(trial_len)
 
-        cortex.integrate(trial_i=i)
-        x, std = cortex.get_final_x()
+        x = cortex.integrate(trial_i=i)
         xs.append(x)
 
     ref_x = np.mean(xs)
@@ -109,8 +108,7 @@ def test_learning():
         print("Trial ", i+1)
         print()
 
-        cortex.integrate(trial_i=i)
-        x_cortex, std = cortex.get_final_x()
+        x_cortex = cortex.integrate(trial_i=i)
 
         if INVERSE:
             cereb_inv.dcn.plus.integrate(trial_i=i)
@@ -127,7 +125,7 @@ def test_learning():
         else:
             x_sum = x_cortex
 
-        sensory_error, std_deg = world.get_error(ref_x, x_sum, std)
+        sensory_error, std_deg = world.get_error(ref_x, x_sum, 0.0)
         error_history.append(sensory_error)
         print("Closed loop error %d:" % i, sensory_error)
 
@@ -246,7 +244,7 @@ def test_initial_rates():
 
 def test_error():
     prism = 20.0
-    n_trials = 5
+    n_trials = 10
 
     error_history = []
 
@@ -255,12 +253,12 @@ def test_error():
     cortex, _, _ = create_brain(0.0)
     xs = []
 
-    for i in range(4):
+    for i in range(10):
         nest.Simulate(trial_len)
 
-        cortex.integrate(trial_i=i)
-        x, std = cortex.get_final_x()
-        xs.append(x)
+        x = cortex.integrate(trial_i=i)
+        if i >= 5:
+            xs.append(x)
 
     ref_x = np.mean(xs)
     ref_std = np.std(xs)
@@ -285,10 +283,9 @@ def test_error():
         print()
         print("Trial ", i+1)
 
-        cortex.integrate(trial_i=i)
-        x_cortex, std = cortex.get_final_x()
+        x_cortex = cortex.integrate(trial_i=i)
 
-        sensory_error, std_deg = world.get_error(ref_x, x_cortex, std)
+        sensory_error, std_deg = world.get_error(ref_x, x_cortex, 0.0)
         error_history.append(sensory_error)
         print("X from cortex:", x_cortex)
         print("Error:", sensory_error)
