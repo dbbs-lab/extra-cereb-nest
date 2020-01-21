@@ -67,7 +67,7 @@ def test_learning():
     INVERSE = True
     prism = 20.0
     # prism = 0.0
-    n_trials = 5
+    n_trials = 10
 
     error_history = []
 
@@ -138,6 +138,12 @@ def test_learning():
             print("Forward PC: %.1f" % cereb_for.pc.get_per_trial_rate())
             print("Forward DCN: %.1f" % cereb_for.dcn.get_per_trial_rate())
 
+            conns = nest.GetConnections(
+                cereb_for.gr.pop[::10], cereb_for.pc.pop[::10]
+                )
+            weights = nest.GetStatus(conns, "weight")
+            print("Minimum weight at forward PFPC:", min(weights))
+
         if INVERSE:
             print()
             print("Inverse IO: %.1f" % cereb_inv.io.get_per_trial_rate())
@@ -145,6 +151,12 @@ def test_learning():
             print("Inverse GR: %.1f" % cereb_inv.gr.get_per_trial_rate())
             print("Inverse PC: %.1f" % cereb_inv.pc.get_per_trial_rate())
             print("Inverse DCN: %.1f" % cereb_inv.dcn.get_per_trial_rate())
+
+            conns = nest.GetConnections(
+                cereb_inv.gr.pop[::10], cereb_inv.pc.pop[::10]
+                )
+            weights = nest.GetStatus(conns, "weight")
+            print("Minimum weight at inverse PFPC:", min(weights))
 
     fig, axs = plt.subplots(5)
     if FORWARD:
