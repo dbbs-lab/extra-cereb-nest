@@ -132,19 +132,19 @@ def test_learning():
 
         if FORWARD:
             print()
-            print("Forward IO rate:", cereb_for.io.get_per_trial_rate())
-            print("Forward MF rate:", cereb_for.mf.get_per_trial_rate())
-            print("Forward GR rate:", cereb_for.gr.get_per_trial_rate())
-            print("Forward PC rate:", cereb_for.pc.get_per_trial_rate())
-            print("Forward DCN rate:", cereb_for.dcn.get_per_trial_rate())
+            print("Forward IO: %.1f" % cereb_for.io.get_per_trial_rate())
+            print("Forward MF: %.1f" % cereb_for.mf.get_per_trial_rate())
+            print("Forward GR: %.1f" % cereb_for.gr.get_per_trial_rate())
+            print("Forward PC: %.1f" % cereb_for.pc.get_per_trial_rate())
+            print("Forward DCN: %.1f" % cereb_for.dcn.get_per_trial_rate())
 
         if INVERSE:
             print()
-            print("Inverse IO rate:", cereb_inv.io.get_per_trial_rate())
-            print("Inverse MF rate:", cereb_inv.mf.get_per_trial_rate())
-            print("Inverse GR rate:", cereb_inv.gr.get_per_trial_rate())
-            print("Inverse PC rate:", cereb_inv.pc.get_per_trial_rate())
-            print("Inverse DCN rate:", cereb_inv.dcn.get_per_trial_rate())
+            print("Inverse IO: %.1f" % cereb_inv.io.get_per_trial_rate())
+            print("Inverse MF: %.1f" % cereb_inv.mf.get_per_trial_rate())
+            print("Inverse GR: %.1f" % cereb_inv.gr.get_per_trial_rate())
+            print("Inverse PC: %.1f" % cereb_inv.pc.get_per_trial_rate())
+            print("Inverse DCN: %.1f" % cereb_inv.dcn.get_per_trial_rate())
 
     fig, axs = plt.subplots(5)
     if FORWARD:
