@@ -67,7 +67,7 @@ def test_learning():
     INVERSE = True
     prism = 20.0
     # prism = 0.0
-    n_trials = 5
+    n_trials = 10
 
     error_history = []
 
@@ -76,11 +76,12 @@ def test_learning():
     cortex, _, _ = create_brain(0.0)
     xs = []
 
-    for i in range(4):
+    for i in range(10):
         nest.Simulate(trial_len)
 
         x = cortex.integrate(trial_i=i)
-        xs.append(x)
+        if i >= 5:
+            xs.append(x)
 
     ref_x = np.mean(xs)
     #
@@ -243,7 +244,7 @@ def test_initial_rates():
 
 
 def test_error():
-    prism = 20.0
+    prism = 0.0
     n_trials = 10
 
     error_history = []
@@ -304,8 +305,8 @@ def test_creation():
 def main():
     # test_creation()
     # test_initial_rates()
-    # test_learning()
-    test_error()
+    test_learning()
+    # test_error()
 
 
 if __name__ == '__main__':
