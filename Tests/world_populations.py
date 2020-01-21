@@ -18,7 +18,7 @@ class Planner(PopView):
                 "trial_length": trial_len,
                 "target": 0.0,
                 "prism_deviation": float(prism),
-                "baseline_rate": 20.0,
+                "baseline_rate": 25.0,
                 "gain_rate": 1.0,
                 }
             )
@@ -142,7 +142,7 @@ class MotorIO(PopView):
 
         def gen_spikes(template):
             # TODO: tune scale factor
-            m_io_freqs = 0.001 * template * abs(sensory_error)
+            m_io_freqs = 0.002 * template * abs(sensory_error)
 
             m_io_ts = []
             for t, f in enumerate(m_io_freqs):
