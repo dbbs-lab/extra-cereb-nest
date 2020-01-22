@@ -24,7 +24,7 @@ def plot_spikes(evs, ts, pop=None, title='', ax=None):
         # ax = plt
         fig, ax = plt.subplots(1)
 
-    ax.scatter(ts, evs, marker='.')
+    ax.scatter(ts, evs, marker='.', s=1)
     ax.set_ylabel(title)
     if pop:
         ax.set_ylim([min(pop), max(pop)])

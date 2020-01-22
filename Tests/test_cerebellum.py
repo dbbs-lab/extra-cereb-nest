@@ -177,68 +177,68 @@ def test_learning():
     save_csv("weights_inv.csv", np.transpose(weights_inv))
 
     fig, axs = plt.subplots(1, 2)
+
+    axs[0].set_title("Forward PC-DCN weights")
     axs[0].matshow(np.transpose(weights_for), aspect='auto')
+
+    axs[1].set_title("Inverse PC-DCN weights")
     axs[1].matshow(np.transpose(weights_inv), aspect='auto')
+
     plt.show()
 
     fig, axs = plt.subplots(5)
     if FORWARD:
-        #   cereb_for.mf.plot_spikes('f MF', axs[0])
-        #   cereb_for.io.plot_spikes('f IO', axs[1])
-        #   cereb_for.pc.plot_spikes('f PC', axs[2])
-        #   cereb_for.dcn.plot_spikes('f DCN', axs[3])
-
         cereb_for.mf.plot_per_trial_rates('MF', axs[0])
         cereb_for.io.plot_per_trial_rates('IO', axs[1])
         cereb_for.pc.plot_per_trial_rates('PC', axs[2])
         cereb_for.dcn.plot_per_trial_rates('DCN', axs[3])
+
+    if INVERSE:
+        cereb_inv.mf.plot_per_trial_rates('MF', axs[0])
+        cereb_inv.io.plot_per_trial_rates('IO', axs[1])
+        cereb_inv.pc.plot_per_trial_rates('PC', axs[2])
+        cereb_inv.dcn.plot_per_trial_rates('DCN', axs[3])
+
+    axs[4].set_ylabel('Error')
+    axs[4].plot(error_history)
+    plt.show()
+
+    if FORWARD:
+        fig, axs = plt.subplots(5)
+        fig.suptitle("Forward")
+
+        cereb_for.mf.plot_spikes('f MF', axs[0])
+        cereb_for.io.plot_spikes('f IO', axs[1])
+        cereb_for.pc.plot_spikes('f PC', axs[2])
+        cereb_for.dcn.plot_spikes('f DCN', axs[3])
 
         save_csv("spikes_mf_for.csv", cereb_for.mf.get_events())
         save_csv("spikes_io_for.csv", cereb_for.io.get_events())
         save_csv("spikes_pc_for.csv", cereb_for.pc.get_events())
         save_csv("spikes_dcn_for.csv", cereb_for.dcn.get_events())
 
-        # conns = nest.GetConnections(cereb_for.gr.pop, cereb_for.pc.pop)
-        # weights = nest.GetStatus(conns, "weight")
-        # print("Minimum weight at PFPC:", min(weights))
-        # axs[4].plot(weights)
-
-        print()
-        print("Forward MF rate:", cereb_for.mf.get_rate(n_trials))
-        print("Forward GR rate:", cereb_for.gr.get_rate(n_trials))
-        print("Forward PC rate:", cereb_for.pc.get_rate(n_trials))
-        print("Forward DCN rate:", cereb_for.dcn.get_rate(n_trials))
+        axs[4].set_ylabel('Error')
+        axs[4].plot(error_history)
+        plt.show()
 
     if INVERSE:
-        #   cereb_inv.mf.plot_spikes('i MF', axs[0])
-        #   cereb_inv.io.plot_spikes('i IO', axs[1])
-        #   cereb_inv.pc.plot_spikes('i PC', axs[2])
-        #   cereb_inv.dcn.plot_spikes('i DCN', axs[3])
+        fig, axs = plt.subplots(5)
+        fig.suptitle("Inverse")
 
-        cereb_inv.mf.plot_per_trial_rates('MF', axs[0])
-        cereb_inv.io.plot_per_trial_rates('IO', axs[1])
-        cereb_inv.pc.plot_per_trial_rates('PC', axs[2])
-        cereb_inv.dcn.plot_per_trial_rates('DCN', axs[3])
+        cereb_inv.mf.plot_spikes('i MF', axs[0])
+        cereb_inv.io.plot_spikes('i IO', axs[1])
+        cereb_inv.pc.plot_spikes('i PC', axs[2])
+        cereb_inv.dcn.plot_spikes('i DCN', axs[3])
 
         save_csv("spikes_mf_inv.csv", cereb_inv.mf.get_events())
         save_csv("spikes_io_inv.csv", cereb_inv.io.get_events())
         save_csv("spikes_pc_inv.csv", cereb_inv.pc.get_events())
         save_csv("spikes_dcn_inv.csv", cereb_inv.dcn.get_events())
+        print(cereb_inv.dcn.get_events())
 
-        # conns = nest.GetConnections(cereb_inv.gr.pop, cereb_inv.pc.pop)
-        # weights = nest.GetStatus(conns, "weight")
-        # print("Minimum weight at PFPC:", min(weights))
-        # axs[4].plot(weights)
-
-        print()
-        print("Inverse MF rate:", cereb_inv.mf.get_rate(n_trials))
-        print("Inverse GR rate:", cereb_inv.gr.get_rate(n_trials))
-        print("Inverse PC rate:", cereb_inv.pc.get_rate(n_trials))
-        print("Inverse DCN rate:", cereb_inv.dcn.get_rate(n_trials))
-
-    axs[4].set_ylabel('Error')
-    axs[4].plot(error_history)
-    plt.show()
+        axs[4].set_ylabel('Error')
+        axs[4].plot(error_history)
+        plt.show()
 
 
 def test_initial_rates():
