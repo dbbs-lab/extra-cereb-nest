@@ -55,7 +55,7 @@ def define_models():
                                         'tau_syn_in': 10.0})
 
 
-def create_cerebellum(inferior_olive):
+def create_cerebellum():
     # PLAST1 PF-PC ex
     # PLAST2 MF-DCN ex
     # PLAST3 PC-DCN
@@ -77,10 +77,8 @@ def create_cerebellum(inferior_olive):
     GR = nest.Create("granular_neuron", GR_number)
     PC = nest.Create("purkinje_neuron", PC_number)
     DCN = nest.Create("nuclear_neuron", DCN_number)
-    if inferior_olive:
-        IO = inferior_olive.pop
-    else:
-        IO = nest.Create("olivary_neuron", IO_number)
+    IO = nest.Create("olivary_neuron", IO_number)
+    # IO = nest.Create("parrot_neuron", IO_number)
 
     # Weights recorder
     rec_params = {
@@ -238,7 +236,8 @@ def create_cerebellum(inferior_olive):
 
 def create_forward_cerebellum():
     sIO = SensoryIO(IO_number)
-    MF, GR, PC, IO, DCN = create_cerebellum(sIO)
+    MF, GR, PC, IO, DCN = create_cerebellum()
+    nest.Connect(sIO.pop, IO, 'one_to_one', syn_spec={'weight': 10.0})
 
     return Cerebellum(
         PopView(MF), PopView(GR), PopView(PC),
@@ -248,7 +247,8 @@ def create_forward_cerebellum():
 
 def create_inverse_cerebellum():
     mIO = MotorIO(IO_number)
-    MF, GR, PC, IO, DCN = create_cerebellum(mIO)
+    MF, GR, PC, IO, DCN = create_cerebellum()
+    nest.Connect(mIO.pop, IO, 'one_to_one', syn_spec={'weight': 10.0})
 
     return Cerebellum(
         PopView(MF), PopView(GR), PopView(PC),
