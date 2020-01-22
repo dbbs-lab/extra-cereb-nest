@@ -193,6 +193,11 @@ def test_learning():
         cereb_for.pc.plot_per_trial_rates('PC', axs[2])
         cereb_for.dcn.plot_per_trial_rates('DCN', axs[3])
 
+        save_csv("spikes_mf_for.csv", cereb_for.mf.get_events())
+        save_csv("spikes_io_for.csv", cereb_for.io.get_events())
+        save_csv("spikes_pc_for.csv", cereb_for.pc.get_events())
+        save_csv("spikes_dcn_for.csv", cereb_for.dcn.get_events())
+
         # conns = nest.GetConnections(cereb_for.gr.pop, cereb_for.pc.pop)
         # weights = nest.GetStatus(conns, "weight")
         # print("Minimum weight at PFPC:", min(weights))
@@ -214,6 +219,11 @@ def test_learning():
         cereb_inv.io.plot_per_trial_rates('IO', axs[1])
         cereb_inv.pc.plot_per_trial_rates('PC', axs[2])
         cereb_inv.dcn.plot_per_trial_rates('DCN', axs[3])
+
+        save_csv("spikes_mf_inv.csv", cereb_inv.mf.get_events())
+        save_csv("spikes_io_inv.csv", cereb_inv.io.get_events())
+        save_csv("spikes_pc_inv.csv", cereb_inv.pc.get_events())
+        save_csv("spikes_dcn_inv.csv", cereb_inv.dcn.get_events())
 
         # conns = nest.GetConnections(cereb_inv.gr.pop, cereb_inv.pc.pop)
         # weights = nest.GetStatus(conns, "weight")
