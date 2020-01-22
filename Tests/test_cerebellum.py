@@ -1,4 +1,5 @@
 from time import time
+from datetime import datetime
 from contextlib import contextmanager
 from collections import namedtuple
 import numpy as np
@@ -18,7 +19,16 @@ nest.Install("cerebmodule")
 nest.Install("extracerebmodule")
 
 
+csv_path = './csv/'
+
+
 trial_len = 300
+
+
+def save_csv(name, data):
+    now = datetime.now()
+    path = csv_path + now.strftime("%d-%m_%H:%M_") + name
+    np.savetxt(path, data, delimiter=",")
 
 
 @contextmanager
@@ -162,6 +172,9 @@ def test_learning():
             weights = get_weights(cereb_inv.gr.pop, cereb_inv.pc.pop)
             weights_inv.append(weights)
             print("Inverse PFPC weights:", min(weights), "to", max(weights))
+
+    save_csv("weights_for.csv", np.transpose(weights_for))
+    save_csv("weights_inv.csv", np.transpose(weights_inv))
 
     fig, axs = plt.subplots(1, 2)
     axs[0].matshow(np.transpose(weights_for), aspect='auto')
