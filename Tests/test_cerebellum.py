@@ -62,6 +62,12 @@ def create_brain(prism):
     return cortex, cereb_for, cereb_inv
 
 
+def get_weights(pop1, pop2):
+    conns = nest.GetConnections(pop1[::50], pop2[::50])
+    weights = nest.GetStatus(conns, "weight")
+    return weights
+
+
 def test_learning():
     FORWARD = True
     INVERSE = True
@@ -92,6 +98,9 @@ def test_learning():
 
     print("Open loop error:", sensory_error)
     #
+
+    weights_for = []
+    weights_inv = []
 
     nest.ResetKernel()
     cortex, cereb_for, cereb_inv = create_brain(prism)
@@ -138,10 +147,8 @@ def test_learning():
             print("Forward PC: %.1f" % cereb_for.pc.get_per_trial_rate())
             print("Forward DCN: %.1f" % cereb_for.dcn.get_per_trial_rate())
 
-            conns = nest.GetConnections(
-                cereb_for.gr.pop[::10], cereb_for.pc.pop[::10]
-                )
-            weights = nest.GetStatus(conns, "weight")
+            weights = get_weights(cereb_for.gr.pop, cereb_for.pc.pop)
+            weights_for.append(weights)
             print("Forward PFPC weights:", min(weights), "to", max(weights))
 
         if INVERSE:
@@ -152,11 +159,14 @@ def test_learning():
             print("Inverse PC: %.1f" % cereb_inv.pc.get_per_trial_rate())
             print("Inverse DCN: %.1f" % cereb_inv.dcn.get_per_trial_rate())
 
-            conns = nest.GetConnections(
-                cereb_inv.gr.pop[::10], cereb_inv.pc.pop[::10]
-                )
-            weights = nest.GetStatus(conns, "weight")
+            weights = get_weights(cereb_inv.gr.pop, cereb_inv.pc.pop)
+            weights_inv.append(weights)
             print("Inverse PFPC weights:", min(weights), "to", max(weights))
+
+    fig, axs = plt.subplots(1, 2)
+    axs[0].matshow(np.transpose(weights_for), aspect='auto')
+    axs[1].matshow(np.transpose(weights_inv), aspect='auto')
+    plt.show()
 
     fig, axs = plt.subplots(5)
     if FORWARD:
