@@ -62,16 +62,16 @@ def create_cerebellum():
     PLAST1 = PLAST2 = PLAST3 = False
     PLAST1 = True
 
-    LTP1 = 0.1
-    LTD1 = -10.0
+    LTP1 = 0.2
+    LTD1 = -1.0
     LTP2 = 1e-5
     LTD2 = -1e-6
     LTP3 = 1e-7
     LTD3 = 1e-6
 
     Init_PFPC = 16.0
-    Init_MFDCN = 0.009
-    Init_PCDCN = -0.001
+    Init_MFDCN = 0.01
+    Init_PCDCN = -0.0005
 
     MF = nest.Create("parrot_neuron", MF_number)
     GR = nest.Create("granular_neuron", GR_number)
