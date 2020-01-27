@@ -63,7 +63,7 @@ def create_cerebellum():
     PLAST1 = True
 
     LTP1 = 0.2
-    LTD1 = -1.0
+    LTD1 = -5.0
     LTP2 = 1e-5
     LTD2 = -1e-6
     LTP3 = 1e-7
