@@ -134,8 +134,6 @@ mynest::planner_neuron::update( nest::Time const& T, const long from, const long
   {
     nest::Time now = T + nest::Time::step( lag );
 
-    nest::DSSpikeEvent e;
-    nest::kernel().event_delivery_manager.send( *this, e, lag );
     long n_spikes = 0;
 
     if ( not device_.is_active( now ) )
@@ -143,39 +141,47 @@ mynest::planner_neuron::update( nest::Time const& T, const long from, const long
       continue; // no spike at this lag
     }
 
-    if ( now.get_ms() > P_.trial_length_ )
-    {
-      // There is no % operator for nest::Time
-      nest::Time now_mod_lenght = now;
-      while (now_mod_lenght >= trial_length)
-      {
-        now_mod_lenght = now_mod_lenght - trial_length;
-      }
-
-      nest::delay spike_i = now_mod_lenght.get_steps();
-
-      if ( V_.trial_spikes_.count(spike_i) > 0)
-      {
-        n_spikes = V_.trial_spikes_[spike_i];
-      }
-    }
-    else
-    {
-      librandom::RngPtr rng = nest::kernel().rng_manager.get_rng( get_thread() );
-      n_spikes = V_.poisson_dev_.ldev( rng );
-
-      V_.trial_spikes_[now.get_steps()] = n_spikes;
-    }
-
-    if ( n_spikes > 0 ) // we must not send events with multiplicity 0
-    {
-      e.set_multiplicity( n_spikes );
-      e.get_receiver().handle( e );
-    }
+    nest::DSSpikeEvent e;
+    nest::kernel().event_delivery_manager.send( *this, e, lag );
   }
 }
 
 void
 mynest::planner_neuron::event_hook( nest::DSSpikeEvent& e )
 {
+  long n_spikes = 0;
+
+  nest::Time::ms trial_length_ms(P_.trial_length_);
+  nest::Time trial_length(trial_length_ms);
+
+  nest::Time now = e.get_stamp();
+
+  if ( now.get_ms() <= P_.trial_length_ )
+  {
+    librandom::RngPtr rng = nest::kernel().rng_manager.get_rng( get_thread() );
+    n_spikes = V_.poisson_dev_.ldev( rng );
+
+    V_.trial_spikes_[now.get_steps()] = n_spikes;
+  }
+
+  // There is no % operator for nest::Time
+  nest::Time now_mod_lenght = now;
+  while (now_mod_lenght >= trial_length)
+  {
+    now_mod_lenght = now_mod_lenght - trial_length;
+  }
+  //
+
+  nest::delay spike_i = now_mod_lenght.get_steps();
+
+  if ( V_.trial_spikes_.count(spike_i) > 0)
+  {
+    n_spikes = V_.trial_spikes_[spike_i];
+  }
+
+  if (n_spikes > 0)
+  {
+    e.set_multiplicity( n_spikes );
+    e.get_receiver().handle( e );
+  }
 }
