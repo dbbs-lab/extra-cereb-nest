@@ -2,6 +2,7 @@
 #define PLANNER_NEURON_H
 
 #include <fstream>
+#include <map>
 
 // Includes from librandom:
 #include "poisson_randomdev.h"
@@ -64,6 +65,7 @@ private:
   {
     double rate_; //!< process rate in Hz
     librandom::PoissonRandomDev poisson_dev_; //!< Random deviate generator
+    std::map<nest::delay, long> trial_spikes_;
   };
 
   nest::StimulatingDevice< nest::SpikeEvent > device_;
