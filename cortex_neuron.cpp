@@ -83,14 +83,14 @@ mynest::cortex_neuron::Parameters_::set( const DictionaryDatum& d )
  * ---------------------------------------------------------------- */
 
 mynest::cortex_neuron::cortex_neuron()
-  : Archiving_Node()
+  : Node()
   , P_()
   , V_()
 {
 }
 
 mynest::cortex_neuron::cortex_neuron( const cortex_neuron& n )
-  : Archiving_Node( n )
+  : Node( n )
   , P_( n.P_ )
 {
 }
@@ -112,7 +112,7 @@ mynest::cortex_neuron::init_state_( const Node& proto )
 void
 mynest::cortex_neuron::init_buffers_()
 {
-  Archiving_Node::clear_history();
+  //Node::clear_history();
 
   double time_res = nest::Time::get_resolution().get_ms();  // 0.1
   // long ticks = 100.0 / time_res;  // 100ms
@@ -207,12 +207,14 @@ mynest::cortex_neuron::update( nest::Time const& origin, const long from, const 
       nest::SpikeEvent se;
       se.set_multiplicity( n_spikes );
       nest::kernel().event_delivery_manager.send( *this, se, lag );
+      se.get_receiver().handle( se );
 
       // set the spike times, respecting the multiplicity
-      for ( long i = 0; i < n_spikes; i++ )
-      {
-        set_spiketime( nest::Time::step( tick ) );
-      }
+      //for ( long i = 0; i < n_spikes; i++ )
+      //{
+      //  set_spiketime( nest::Time::step( tick ) );
+      //}
+      //
     }
   }
 }
