@@ -8,33 +8,28 @@
 #include "poisson_randomdev.h"
 
 // Includes from nestkernel:
+#include "archiving_node.h"
 #include "connection.h"
-#include "device_node.h"
 #include "event.h"
 #include "nest_types.h"
-#include "stimulating_device.h"
 
 #include "mynames.h"
 
 
 namespace mynest
 {
-class planner_neuron : public nest::DeviceNode
+class planner_neuron : public nest::Archiving_Node
 {
 
 public:
   planner_neuron();
   planner_neuron( const planner_neuron& );
 
-  bool
-  has_proxies() const
-  {
-    return false;
-  }
-
-  using nest::Node::event_hook;
+  using nest::Node::handle;
+  using nest::Node::handles_test_event;
 
   nest::port send_test_event( nest::Node&, nest::rport, nest::synindex, bool );
+  nest::port handles_test_event( nest::SpikeEvent&, nest::rport );
 
   void get_status( DictionaryDatum& ) const;
   void set_status( const DictionaryDatum& );
@@ -45,7 +40,7 @@ private:
   void calibrate();
 
   void update( nest::Time const&, const long, const long );
-  void event_hook( nest::DSSpikeEvent& );
+  void handle( nest::SpikeEvent& );
 
   struct Parameters_
   {
@@ -68,35 +63,34 @@ private:
     std::map<nest::delay, long> trial_spikes_;
   };
 
-  nest::StimulatingDevice< nest::SpikeEvent > device_;
   Parameters_ P_;
   Variables_ V_;
 };
 
 inline nest::port
-planner_neuron::send_test_event( nest::Node& target, nest::rport receptor_type, nest::synindex syn_id, bool dummy_target )
+planner_neuron::send_test_event( nest::Node& target, nest::rport receptor_type, nest::synindex, bool )
 {
-  device_.enforce_single_syn_type( syn_id );
+  nest::SpikeEvent e;
+  e.set_sender( *this );
 
-  if ( dummy_target )
+  return target.handles_test_event( e, receptor_type );
+}
+
+inline nest::port
+planner_neuron::handles_test_event( nest::SpikeEvent&, nest::rport receptor_type )
+{
+  if ( receptor_type != 0 )
   {
-    nest::DSSpikeEvent e;
-    e.set_sender( *this );
-    return target.handles_test_event( e, receptor_type );
+    throw nest::UnknownReceptorType( receptor_type, get_name() );
   }
-  else
-  {
-    nest::SpikeEvent e;
-    e.set_sender( *this );
-    return target.handles_test_event( e, receptor_type );
-  }
+  return 0;
 }
 
 inline void
 planner_neuron::get_status( DictionaryDatum& d ) const
 {
   P_.get( d );
-  device_.get_status( d );
+  nest::Archiving_Node::get_status( d );
 }
 
 inline void
@@ -109,7 +103,7 @@ planner_neuron::set_status( const DictionaryDatum& d )
   // write them back to (P_, S_) before we are also sure that
   // the properties to be set in the parent class are internally
   // consistent.
-  //nest::Archiving_Node::set_status( d );
+  nest::Archiving_Node::set_status( d );
 
   // if we get here, temporaries contain consistent set of properties
   P_ = ptmp;

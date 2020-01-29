@@ -71,14 +71,14 @@ mynest::planner_neuron::Parameters_::set( const DictionaryDatum& d )
  * ---------------------------------------------------------------- */
 
 mynest::planner_neuron::planner_neuron()
-  : DeviceNode()
+  : Archiving_Node()
   , P_()
   , V_()
 {
 }
 
 mynest::planner_neuron::planner_neuron( const planner_neuron& n )
-  : DeviceNode( n )
+  : Archiving_Node( n )
   , P_( n.P_ )
 {
 }
@@ -90,16 +90,12 @@ mynest::planner_neuron::planner_neuron( const planner_neuron& n )
 void
 mynest::planner_neuron::init_state_( const Node& proto )
 {
-  const planner_neuron& pr = downcast< planner_neuron >( proto );
-
-  device_.init_state( pr.device_ );
 }
 
 
 void
 mynest::planner_neuron::init_buffers_()
 {
-  device_.init_buffers();
 }
 
 void
@@ -108,8 +104,6 @@ mynest::planner_neuron::calibrate()
   double rate = P_.baseline_rate_ + P_.gain_rate_ * (P_.target_ + P_.prism_deviation_);
   rate =  std::max(0.0, rate);
   V_.rate_ = rate;
-
-  device_.calibrate();
 
   // rate_ is in Hz, dt in ms, so we have to convert from s to ms
   V_.poisson_dev_.set_lambda( nest::Time::get_resolution().get_ms() * V_.rate_ * 1e-3 );
@@ -136,52 +130,43 @@ mynest::planner_neuron::update( nest::Time const& T, const long from, const long
 
     long n_spikes = 0;
 
-    if ( not device_.is_active( now ) )
+    if ( now.get_ms() <= P_.trial_length_ )
     {
-      continue; // no spike at this lag
+      librandom::RngPtr rng = nest::kernel().rng_manager.get_rng( get_thread() );
+      n_spikes = V_.poisson_dev_.ldev( rng );
+
+      V_.trial_spikes_[now.get_steps()] = n_spikes;
+    }
+    else
+    {
+      // There is no % operator for nest::Time
+      nest::Time now_mod_lenght = now;
+      while (now_mod_lenght >= trial_length)
+      {
+        now_mod_lenght = now_mod_lenght - trial_length;
+      }
+      //
+
+      nest::delay spike_i = now_mod_lenght.get_steps();
+
+      if ( V_.trial_spikes_.count(spike_i) > 0)
+      {
+        n_spikes = V_.trial_spikes_[spike_i];
+      }
     }
 
-    nest::DSSpikeEvent e;
-    nest::kernel().event_delivery_manager.send( *this, e, lag );
+    if (n_spikes > 0)
+    {
+      nest::SpikeEvent e;
+      nest::kernel().event_delivery_manager.send( *this, e, lag );
+
+      e.set_multiplicity( n_spikes );
+      e.get_receiver().handle( e );
+    }
   }
 }
 
 void
-mynest::planner_neuron::event_hook( nest::DSSpikeEvent& e )
+mynest::planner_neuron::handle( nest::SpikeEvent& e )
 {
-  long n_spikes = 0;
-
-  nest::Time::ms trial_length_ms(P_.trial_length_);
-  nest::Time trial_length(trial_length_ms);
-
-  nest::Time now = e.get_stamp();
-
-  if ( now.get_ms() <= P_.trial_length_ )
-  {
-    librandom::RngPtr rng = nest::kernel().rng_manager.get_rng( get_thread() );
-    n_spikes = V_.poisson_dev_.ldev( rng );
-
-    V_.trial_spikes_[now.get_steps()] = n_spikes;
-  }
-
-  // There is no % operator for nest::Time
-  nest::Time now_mod_lenght = now;
-  while (now_mod_lenght >= trial_length)
-  {
-    now_mod_lenght = now_mod_lenght - trial_length;
-  }
-  //
-
-  nest::delay spike_i = now_mod_lenght.get_steps();
-
-  if ( V_.trial_spikes_.count(spike_i) > 0)
-  {
-    n_spikes = V_.trial_spikes_[spike_i];
-  }
-
-  if (n_spikes > 0)
-  {
-    e.set_multiplicity( n_spikes );
-    e.get_receiver().handle( e );
-  }
 }
