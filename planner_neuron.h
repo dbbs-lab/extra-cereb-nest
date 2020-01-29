@@ -42,6 +42,11 @@ private:
   void update( nest::Time const&, const long, const long );
   void handle( nest::SpikeEvent& );
 
+  struct Buffers_
+  {
+    std::vector<long> trial_spikes_;
+  };
+
   struct Parameters_
   {
     long trial_length_;
@@ -59,10 +64,11 @@ private:
   struct Variables_
   {
     double rate_; //!< process rate in Hz
+    long buffer_size_;
     librandom::PoissonRandomDev poisson_dev_; //!< Random deviate generator
-    std::map<nest::delay, long> trial_spikes_;
   };
 
+  Buffers_ B_;
   Parameters_ P_;
   Variables_ V_;
 };

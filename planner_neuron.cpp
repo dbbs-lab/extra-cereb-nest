@@ -96,6 +96,13 @@ mynest::planner_neuron::init_state_( const Node& proto )
 void
 mynest::planner_neuron::init_buffers_()
 {
+  Archiving_Node::clear_history();
+
+  nest::Time::ms trial_length_ms(P_.trial_length_);
+  nest::Time trial_length(trial_length_ms);
+
+  V_.buffer_size_ = trial_length.get_steps();
+  B_.trial_spikes_.resize(V_.buffer_size_);
 }
 
 void
@@ -135,24 +142,12 @@ mynest::planner_neuron::update( nest::Time const& T, const long from, const long
       librandom::RngPtr rng = nest::kernel().rng_manager.get_rng( get_thread() );
       n_spikes = V_.poisson_dev_.ldev( rng );
 
-      V_.trial_spikes_[now.get_steps()] = n_spikes;
+      B_.trial_spikes_[now.get_steps()] = n_spikes;
     }
     else
     {
-      // There is no % operator for nest::Time
-      nest::Time now_mod_lenght = now;
-      while (now_mod_lenght >= trial_length)
-      {
-        now_mod_lenght = now_mod_lenght - trial_length;
-      }
-      //
-
-      nest::delay spike_i = now_mod_lenght.get_steps();
-
-      if ( V_.trial_spikes_.count(spike_i) > 0)
-      {
-        n_spikes = V_.trial_spikes_[spike_i];
-      }
+      nest::delay spike_i = now.get_steps() % V_.buffer_size_;
+      n_spikes = B_.trial_spikes_[spike_i];
     }
 
     if (n_spikes > 0)
