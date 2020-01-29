@@ -18,7 +18,7 @@
 
 namespace mynest
 {
-class planner_neuron : public nest::Archiving_Node
+class planner_neuron : public nest::Node
 {
 
 public:
@@ -96,7 +96,7 @@ inline void
 planner_neuron::get_status( DictionaryDatum& d ) const
 {
   P_.get( d );
-  nest::Archiving_Node::get_status( d );
+  // nest::Node::get_status( d );
 }
 
 inline void
@@ -109,7 +109,6 @@ planner_neuron::set_status( const DictionaryDatum& d )
   // write them back to (P_, S_) before we are also sure that
   // the properties to be set in the parent class are internally
   // consistent.
-  nest::Archiving_Node::set_status( d );
 
   // if we get here, temporaries contain consistent set of properties
   P_ = ptmp;

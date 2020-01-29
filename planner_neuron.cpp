@@ -71,14 +71,14 @@ mynest::planner_neuron::Parameters_::set( const DictionaryDatum& d )
  * ---------------------------------------------------------------- */
 
 mynest::planner_neuron::planner_neuron()
-  : Archiving_Node()
+  : Node()
   , P_()
   , V_()
 {
 }
 
 mynest::planner_neuron::planner_neuron( const planner_neuron& n )
-  : Archiving_Node( n )
+  : Node( n )
   , P_( n.P_ )
 {
 }
@@ -96,8 +96,6 @@ mynest::planner_neuron::init_state_( const Node& proto )
 void
 mynest::planner_neuron::init_buffers_()
 {
-  Archiving_Node::clear_history();
-
   nest::Time::ms trial_length_ms(P_.trial_length_);
   nest::Time trial_length(trial_length_ms);
 
