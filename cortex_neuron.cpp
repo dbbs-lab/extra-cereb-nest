@@ -66,10 +66,10 @@ mynest::cortex_neuron::Parameters_::set( const DictionaryDatum& d )
     throw nest::BadProperty( "The trial length cannot be zero or negative." );
   }
   updateValue< long >( d, mynames::joint_id, joint_id_ );
-  if ( joint_id_ > 3 || joint_id_ < 0 )
-  {
-    throw nest::BadProperty( "The joint ID cannot be negative or grater than 3" );
-  }
+  //if ( joint_id_ > 3 || joint_id_ < 0 )
+  //{
+  //  throw nest::BadProperty( "The joint ID cannot be negative or grater than 3" );
+  //}
   updateValue< long >( d, mynames::fiber_id, fiber_id_ );
   updateValue< long >( d, mynames::fibers_per_joint, fibers_per_joint_ );
   updateValue< double >( d, mynames::rbf_sdev, rbf_sdev_ );
@@ -158,6 +158,11 @@ mynest::cortex_neuron::update( nest::Time const& origin, const long from, const 
   assert( to >= 0 );
   assert( static_cast<nest::delay>(from) < nest::kernel().connection_manager.get_min_delay() );
   assert( from < to );
+
+  if (P_.joint_id_ > 3) {
+    // Silent neuron is the population size is not divisible by 4
+    return;
+  }
 
   double time_res = nest::Time::get_resolution().get_ms();  // 0.1
   long buf_size = V_.buffer_size_;
