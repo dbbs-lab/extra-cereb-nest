@@ -105,7 +105,6 @@ class SensoryIO(PopView):
     def set_rate(self, sensory_error):
         # TODO: tune scale factor
         s_io_rate = 1.0 * abs(sensory_error)
-        print("Setting sensory IO rate to ", s_io_rate)
 
         if sensory_error > 0:
             nest.SetStatus(self.plus.pop, {"rate": s_io_rate})
@@ -168,12 +167,20 @@ class MotorIO(PopView):
 
 
 class DirectDCN(PopView):
-    def __init__(self, pop):
-        super().__init__(pop)
+    def __init__(self, pop_1, pop_2=None):
+        if pop_2 is None:
+            pop = pop_1
+            super().__init__(pop)
 
-        n = len(pop)
-        self.plus = self.slice(0, n//2)  # [0:n]
-        self.minus = self.slice(n//2)    # [n:]
+            n = len(pop)
+            self.plus = self.slice(0, n//2)  # [0:n]
+            self.minus = self.slice(n//2)    # [n:]
+        else:
+            pop = list(pop_1) + list(pop_2)
+            super().__init__(pop)
+
+            self.plus = PopView(pop_1)
+            self.minus = PopView(pop_2)
 
 
 class InverseDCN_half(PopView):
@@ -227,9 +234,17 @@ class InverseDCN_half(PopView):
 
 
 class InverseDCN(PopView):
-    def __init__(self, pop):
-        super().__init__(pop)
+    def __init__(self, pop_1, pop_2=None):
+        if pop_2 is None:
+            pop = pop_1
+            super().__init__(pop)
 
-        n = len(pop)
-        self.plus = InverseDCN_half(pop[0:n//2])
-        self.minus = InverseDCN_half(pop[n//2:])
+            n = len(pop)
+            self.plus = InverseDCN_half(pop[0:n//2])
+            self.minus = InverseDCN_half(pop[n//2:])
+        else:
+            pop = list(pop_1) + list(pop_2)
+            super().__init__(pop)
+
+            self.plus = InverseDCN_half(pop_1)
+            self.minus = InverseDCN_half(pop_2)
