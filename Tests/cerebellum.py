@@ -71,7 +71,8 @@ def create_cerebellum():
 
     Init_PFPC = 16.0
     Init_MFDCN = 0.01
-    Init_PCDCN = -0.0005
+    # Init_PCDCN = -0.0005
+    Init_PCDCN = -0.001
 
     MF = nest.Create("parrot_neuron", MF_number)
     GR = nest.Create("granular_neuron", GR_number)
