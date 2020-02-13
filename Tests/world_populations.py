@@ -183,56 +183,6 @@ class DirectDCN(PopView):
             self.minus = PopView(pop_2)
 
 
-class InverseDCN_half(PopView):
-    def __init__(self, pop):
-        super().__init__(pop)
-
-        self.states = []
-        self.x_mean = 0.0
-        self.x_std = 0.0
-
-    def get_final_x(self):
-        mean = self.x_mean
-        std = self.x_std
-        return mean, std
-
-    def integrate(self, n_trials=1, trial_i=None, plot=False):
-        evs, ts = self.get_events()
-
-        self.states = []  # (ts, qdd, qd, q) * n_trials
-        xs = []  # position final value
-
-        if len(evs) == 0:
-            return
-
-        if trial_i is not None:
-            trials = [trial_i]
-        else:
-            trials = range(n_trials)
-
-        for i in trials:
-            # if n_trials is 1 than integrate only the last trial
-            trial_i = n_trials - 1 - i
-
-            trial_evs, trial_ts = select_trial_events(evs, ts, trial_i)
-
-            pop_size = len(self.pop)
-            torques = [1.0 for ev in trial_evs if ev in self.pop]
-            vel = np.array(list(accumulate(torques))) / pop_size
-            pos = np.array(list(accumulate(vel))) / pop_size
-
-            q_ts, qdd, qd, q = trial_ts, torques, vel, pos
-            if len(q) == 0:
-                xs.append(0.0)
-            else:
-                xs.append(q[-1])
-
-            self.states.append([q_ts, qdd, qd, q])
-
-        self.x_mean = np.mean(xs)
-        self.x_std = np.std(xs)
-
-
 class InverseDCN(PopView):
     def __init__(self, pop_1, pop_2=None):
         if pop_2 is None:
@@ -240,11 +190,42 @@ class InverseDCN(PopView):
             super().__init__(pop)
 
             n = len(pop)
-            self.plus = InverseDCN_half(pop[0:n//2])
-            self.minus = InverseDCN_half(pop[n//2:])
+            self.plus = PopView(pop[0:n//2])
+            self.minus = PopView(pop[n//2:])
         else:
             pop = list(pop_1) + list(pop_2)
             super().__init__(pop)
 
-            self.plus = InverseDCN_half(pop_1)
-            self.minus = InverseDCN_half(pop_2)
+            self.plus = PopView(pop_1)
+            self.minus = PopView(pop_2)
+
+        self.final_x = 0.0
+
+    def integrate(self, trial_i=0):
+        pop_size = len(self.pop)
+
+        evs, ts = self.get_events()
+        evts = zip(evs, ts)  # [(ev0, t0), (ev1, t1), ...]
+        trial_evts = [
+            (ev, t) for (ev, t) in evts
+            if trial_len*trial_i <= t < trial_len*(trial_i+1)
+        ]
+        if len(trial_evts) > 0:
+            evs, ts = zip(*trial_evts)
+        else:
+            evs, ts = [], []
+
+        torques = [1.0 if ev in self.plus.pop else -1.0
+                   for ev in evs]
+        vel = np.array(list(accumulate(torques))) / pop_size
+        pos = np.array(list(accumulate(vel))) / pop_size
+
+        if len(pos) > 0:
+            self.final_x = pos[-1]
+        else:
+            self.final_x = 0.0
+
+        # print("DCN events:", len(evs))
+        # print("DCN integration result:", self.final_x)
+        # print()
+        return self.final_x

@@ -83,7 +83,7 @@ def test_learning():
     INVERSE = True
     prism = 20.0
     # prism = 0.0
-    n_trials = 4
+    n_trials = 20
 
     error_history = []
 
@@ -131,17 +131,10 @@ def test_learning():
         x_cortex = cortex.integrate(trial_i=i)
 
         if INVERSE:
-            cereb_inv.dcn.plus.integrate(trial_i=i)
-            cereb_inv.dcn.minus.integrate(trial_i=i)
+            x_dcn = cereb_inv.dcn.integrate(trial_i=i)
 
-            x_dcnp, _ = cereb_inv.dcn.plus.get_final_x()
-            x_dcnn, _ = cereb_inv.dcn.minus.get_final_x()
-
-            print("Contributions from inverse DCN:")
-            print("Positive:", x_dcnp)
-            print("Negative:", x_dcnn)
-
-            x_sum = x_cortex + x_dcnp - x_dcnn
+            print("Contributions from inverse DCN:", x_dcn)
+            x_sum = x_cortex + x_dcn
         else:
             x_sum = x_cortex
 
@@ -178,11 +171,13 @@ def test_learning():
 
     fig, axs = plt.subplots(1, 2)
 
-    axs[0].set_title("Forward PC-DCN weights")
-    axs[0].matshow(np.transpose(weights_for), aspect='auto')
+    if FORWARD:
+        axs[0].set_title("Forward PC-DCN weights")
+        axs[0].matshow(np.transpose(weights_for), aspect='auto')
 
-    axs[1].set_title("Inverse PC-DCN weights")
-    axs[1].matshow(np.transpose(weights_inv), aspect='auto')
+    if INVERSE:
+        axs[1].set_title("Inverse PC-DCN weights")
+        axs[1].matshow(np.transpose(weights_inv), aspect='auto')
 
     plt.show()
 
