@@ -83,7 +83,7 @@ def test_learning():
     INVERSE = True
     prism = 20.0
     # prism = 0.0
-    n_trials = 20
+    n_trials = 10
 
     error_history = []
 
@@ -92,19 +92,34 @@ def test_learning():
     cortex, _, _ = create_brain(0.0)
     xs = []
 
-    for i in range(10):
+    for i in range(6):
         nest.Simulate(trial_len)
-
         x = cortex.integrate(trial_i=i)
-        if i >= 5:
-            xs.append(x)
+        if i >= 1:
+             xs.append(x)
+        # xs.append(x)
 
-    ref_x = np.mean(xs)
+    x_0 = np.mean(xs)
+
+    nest.ResetKernel()
+    cortex, _, _ = create_brain(10.0)
+    xs = []
+
+    for i in range(6):
+        nest.Simulate(trial_len)
+        x = cortex.integrate(trial_i=i)
+        if i >= 1:
+            xs.append(x)
+        # xs.append(x)
+
+    x_10 = np.mean(xs)
+
+    get_error = world.get_error_function(x_0, x_10)
     #
 
     # Get open loop error
     mean, std = world.run_open_loop(MF_number, prism)
-    sensory_error, std_deg = world.get_error(ref_x, mean, std)
+    sensory_error = get_error(mean)
 
     print("Open loop error:", sensory_error)
     #
@@ -138,7 +153,7 @@ def test_learning():
         else:
             x_sum = x_cortex
 
-        sensory_error, std_deg = world.get_error(ref_x, x_sum, 0.0)
+        sensory_error = get_error(x_sum)
         error_history.append(sensory_error)
         print("Closed loop error %d:" % i, sensory_error)
 
@@ -229,7 +244,6 @@ def test_learning():
         save_csv("spikes_io_inv.csv", cereb_inv.io.get_events())
         save_csv("spikes_pc_inv.csv", cereb_inv.pc.get_events())
         save_csv("spikes_dcn_inv.csv", cereb_inv.dcn.get_events())
-        print(cereb_inv.dcn.get_events())
 
         axs[4].set_ylabel('Error')
         axs[4].plot(error_history)
@@ -273,58 +287,6 @@ def test_initial_rates():
     # cereb_inv.pc.plot_spikes('Inverse PC', axs[2])
     # cereb_inv.dcn.plot_spikes('Inverse DCN', axs[3])
     # plt.show()
-
-
-def test_error():
-    prism = 0.0
-    n_trials = 10
-
-    error_history = []
-
-    # Get reference x
-    nest.ResetKernel()
-    cortex, _, _ = create_brain(0.0)
-    xs = []
-
-    for i in range(10):
-        nest.Simulate(trial_len)
-
-        x = cortex.integrate(trial_i=i)
-        if i >= 5:
-            xs.append(x)
-
-    ref_x = np.mean(xs)
-    ref_std = np.std(xs)
-    #
-
-    # Get open loop error
-    mean, std = world.run_open_loop(MF_number, prism)
-    print("Reference mean:", ref_x, "std:", ref_std)
-
-    sensory_error, std_deg = world.get_error(ref_x, mean, std)
-    print("Open loop error:", sensory_error)
-    #
-
-    nest.ResetKernel()
-    cortex, _, _ = create_brain(prism)
-
-    for i in range(n_trials):
-        print("Simulating")
-        with timing("Trial time"):
-            nest.Simulate(trial_len)
-
-        print()
-        print("Trial ", i+1)
-
-        x_cortex = cortex.integrate(trial_i=i)
-
-        sensory_error, std_deg = world.get_error(ref_x, x_cortex, 0.0)
-        error_history.append(sensory_error)
-        print("X from cortex:", x_cortex)
-        print("Error:", sensory_error)
-
-    plt.plot(error_history)
-    plt.show()
 
 
 def test_creation():

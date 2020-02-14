@@ -56,12 +56,22 @@ def get_reference(n, n_trials=1):
 
 
 def get_error(ref_mean, mean, std=0.0):
+    raise Exception("Deprecated, use get_error_function instead")
     # ref_mean = 10°
     final_deg = mean * 10.0 / ref_mean
     std_deg = std * 10.0 / ref_mean
 
     error = final_deg - 10  # error in degrees
     return error, std_deg
+
+
+def get_error_function(x_0, x_10):
+    delta_10 = x_10 - x_0
+
+    def error_function(x):
+        return 10.0 * (x - x_0) / delta_10
+
+    return error_function
 
 
 def to_degrees(ref_mean, x):
