@@ -92,6 +92,32 @@ def test_learning():
 
 
 def plot_integration():
+    n = 100
+    prism = 25.0
+
+    nest.ResetKernel()
+    trajectories.save_file(prism, trial_len)
+
+    planner = Planner(n, prism)
+    cortex = Cortex(n)
+    planner.connect(cortex)
+
+    nest.Simulate(trial_len)
+
+    final_x = cortex.integrate()
+
+    # final_x = cortex.integrate()
+    print('final_x:', final_x)
+
+    fig, axs = plt.subplots(3)
+    axs[0].plot(cortex.torques)
+    axs[1].plot(cortex.vel)
+    axs[2].plot(cortex.pos)
+    plt.show()
+
+    return
+
+    # Legacy
     prism = 0.0
     duration = 300
     q_in = np.array((10.0, -10.0, -90.0, 170.0))

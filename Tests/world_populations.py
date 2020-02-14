@@ -9,6 +9,35 @@ import trajectories
 trial_len = 300
 
 
+class Event:
+    def __init__(self, n_id, t):
+        self.n_id = n_id
+        self.t = t
+
+
+class Events(list):
+    def __init__(self, *args):
+        if len(args) == 1:
+            self._from_list(*args)
+        if len(args) == 2:
+            self._from_ids_ts(*args)
+
+    def _from_list(self, ev_list):
+        super().__init__(ev_list)
+
+    def _from_ids_ts(self, n_ids, ts):
+        ev_list = [Event(n_id, t) for (n_id, t) in zip(n_ids, ts)]
+        self._from_list(ev_list)
+
+    @property
+    def n_ids(self):
+        return (e.n_id for e in self)
+
+    @property
+    def ts(self):
+        return (e.t for e in self)
+
+
 class Planner(PopView):
     def __init__(self, n, prism=0.0):
         pop = nest.Create(
@@ -53,39 +82,42 @@ class Cortex(PopView):
 
         super().__init__(pop)
 
-        self.final_x = 0
-
         self.joints = []
         for i in range(4):
             begin = i * n//4
             end = (i+1) * n//4
             self.joints.append(JointFibers(self.pop[begin:end]))
 
-    def get_final_x(self):
-        # legacy
-        return self.final_x, 0.0
+        self.torques = []
+        self.vel = []
+        self.pos = []
 
-        mean = self.joints[1].x_mean
-        std = self.joints[1].x_std
-        return mean, std
-
-    def integrate(self, trial_i=None):
+    def integrate(self, trial_i=0):
         pop_size = len(self.joints[1].pop)
 
-        evs, ts = self.joints[1].get_events()
-        evts = zip(evs, ts)  # [(ev0, t0), (ev1, t1), ...]
-        trial_evts = [
-            (ev, t) for (ev, t) in evts
-            if trial_len*trial_i <= t < trial_len*(trial_i+1)
-        ]
-        evs, ts = zip(*trial_evts)
+        n_ids, ts = self.joints[1].get_events()
+        events = Events(n_ids, ts)
 
-        torques = [2.0*ev / pop_size - 1.0 for ev in evs]
+        trial_events = Events(
+            Event(e.n_id, e.t) for e in events
+            if trial_len*trial_i <= e.t < trial_len*(trial_i+1)
+        )
+
+        torques = np.zeros(trial_len)
+        for e in trial_events:
+            t = int(np.floor(e.t)) - trial_len * trial_i
+            torques[t] += 2.0 * e.n_id / pop_size - 1.0
+
+        # torques = [2.0*n_id / pop_size - 1.0 for n_id in trial_events.n_ids]
         vel = np.array(list(accumulate(torques))) / pop_size
         pos = np.array(list(accumulate(vel))) / pop_size
 
-        self.final_x = pos[-1]
-        return pos[-1]
+        self.torques = torques
+        self.vel = vel
+        self.pos = pos
+
+        final_x = pos[-1]
+        return final_x
 
 
 class SensoryIO(PopView):
@@ -199,33 +231,24 @@ class InverseDCN(PopView):
             self.plus = PopView(pop_1)
             self.minus = PopView(pop_2)
 
-        self.final_x = 0.0
-
     def integrate(self, trial_i=0):
         pop_size = len(self.pop)
 
-        evs, ts = self.get_events()
-        evts = zip(evs, ts)  # [(ev0, t0), (ev1, t1), ...]
-        trial_evts = [
-            (ev, t) for (ev, t) in evts
-            if trial_len*trial_i <= t < trial_len*(trial_i+1)
-        ]
-        if len(trial_evts) > 0:
-            evs, ts = zip(*trial_evts)
-        else:
-            evs, ts = [], []
+        n_ids, ts = self.get_events()
+        events = Events(n_ids, ts)
 
-        torques = [1.0 if ev in self.plus.pop else -1.0
-                   for ev in evs]
+        trial_events = Events(
+            Event(e.n_id, e.t) for e in events
+            if trial_len*trial_i <= e.t < trial_len*(trial_i+1)
+        )
+
+        torques = np.zeros(trial_len)
+        for e in trial_events:
+            t = int(np.floor(e.t)) - trial_len * trial_i
+            torques[t] += 1.0 if e.n_id in self.plus.pop else -1.0
+
         vel = np.array(list(accumulate(torques))) / pop_size
         pos = np.array(list(accumulate(vel))) / pop_size
 
-        if len(pos) > 0:
-            self.final_x = pos[-1]
-        else:
-            self.final_x = 0.0
-
-        # print("DCN events:", len(evs))
-        # print("DCN integration result:", self.final_x)
-        # print()
-        return self.final_x
+        final_x = pos[-1]
+        return final_x

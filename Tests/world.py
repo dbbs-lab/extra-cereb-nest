@@ -42,8 +42,7 @@ def run_open_loop(n, prism, n_trials=1):
     for i in range(n_trials):
         nest.Simulate(trial_len)
 
-        cortex.integrate(trial_i=i)
-        x, _ = cortex.get_final_x()
+        x = cortex.integrate(trial_i=i)
         xs.append(x)
 
     mean = np.mean(xs)
@@ -63,3 +62,10 @@ def get_error(ref_mean, mean, std=0.0):
 
     error = final_deg - 10  # error in degrees
     return error, std_deg
+
+
+def to_degrees(ref_mean, x):
+    # ref_mean = 10°
+    x_deg = x * 10.0 / ref_mean
+
+    return x_deg
