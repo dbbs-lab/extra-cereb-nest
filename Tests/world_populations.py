@@ -46,7 +46,7 @@ class Planner(PopView):
             params={
                 "trial_length": trial_len,
                 "target": 0.0,
-                "prism_deviation": float(prism),
+                "prism_deviation": int(prism),
                 "baseline_rate": 25.0,
                 "gain_rate": 1.0,
                 }
@@ -54,7 +54,7 @@ class Planner(PopView):
         super().__init__(pop)
 
     def set_prism(self, prism):
-        nest.SetStatus(self.pop, {"prism_deviation": float(prism)})
+        nest.SetStatus(self.pop, {"prism_deviation": int(prism)})
 
 
 class JointFibers(PopView):

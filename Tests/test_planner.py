@@ -13,7 +13,7 @@ def test_spikes():
         return list(zip(*l))
 
     nest.ResetKernel()
-    planner = Planner(5, 20.0)
+    planner = Planner(5, 20)
 
     nest.Simulate(trial_len)
     evts_1 = transpose(planner.get_events())
@@ -21,10 +21,10 @@ def test_spikes():
     nest.Simulate(trial_len)
     evts_2 = transpose(planner.get_events())[len(evts_1):]
 
-    planner.set_prism(15.0)
+    planner.set_prism(15)
     nest.Simulate(trial_len)
 
-    planner.set_prism(20.0)
+    planner.set_prism(20)
     nest.Simulate(trial_len)
     evts_3 = transpose(planner.get_events())[:len(evts_1)]
 
@@ -44,18 +44,26 @@ def test_spikes():
 
 def test_rates():
     nest.ResetKernel()
-    planner = Planner(10, 0.0)
+    planner = Planner(10, 0)
 
     planner.set_prism(15.0)
     nest.Simulate(trial_len)
     planner.get_per_trial_rate()
 
-    planner.set_prism(20.0)
+    planner.set_prism(20)
 
     nest.Simulate(trial_len)
     planner.get_per_trial_rate()
 
+    planner.set_prism(15)
+    nest.Simulate(trial_len)
+    planner.get_per_trial_rate()
+
     print("Rates:", planner.rates_history)
+    assert planner.rates_history[0] == planner.rates_history[-1]
+
+    planner.set_prism(-50)
+    nest.Simulate(trial_len)
 
 
 test_spikes()

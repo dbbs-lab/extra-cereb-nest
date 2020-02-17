@@ -51,7 +51,7 @@ private:
   {
     long trial_length_;
     double target_;
-    double prism_deviation_;
+    long prism_deviation_;
     double baseline_rate_;
     double gain_rate_;
 

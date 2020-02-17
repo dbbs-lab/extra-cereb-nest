@@ -31,7 +31,7 @@
 mynest::planner_neuron::Parameters_::Parameters_()
   : trial_length_( 1000 )
   , target_( 0.0 )
-  , prism_deviation_( 0.0 )
+  , prism_deviation_( 0 )
   , baseline_rate_( 10.0 )
   , gain_rate_( 1.0 )
 {
@@ -46,7 +46,7 @@ mynest::planner_neuron::Parameters_::get( DictionaryDatum& d ) const
 {
   def< long >( d, mynames::trial_length, trial_length_ );
   def< double >( d, mynames::target, target_ );
-  def< double >( d, mynames::prism_deviation, prism_deviation_ );
+  def< long >( d, mynames::prism_deviation, prism_deviation_ );
   def< double >( d, mynames::baseline_rate, baseline_rate_ );
   def< double >( d, mynames::gain_rate, gain_rate_ );
 }
@@ -61,7 +61,7 @@ mynest::planner_neuron::Parameters_::set( const DictionaryDatum& d )
   }
 
   updateValue< double >( d, mynames::target, target_ );
-  updateValue< double >( d, mynames::prism_deviation, prism_deviation_ );
+  updateValue< long >( d, mynames::prism_deviation, prism_deviation_ );
   updateValue< double >( d, mynames::baseline_rate, baseline_rate_ );
   updateValue< double >( d, mynames::gain_rate, gain_rate_ );
 }
@@ -124,7 +124,7 @@ mynest::planner_neuron::update( nest::Time const& T, const long from, const long
 
   nest::Time::ms trial_length_ms(P_.trial_length_);
   nest::Time trial_length(trial_length_ms);
-  long prism = (long)P_.prism_deviation_;
+  long prism = P_.prism_deviation_;
 
   for ( long lag = from; lag < to; ++lag )
   {
