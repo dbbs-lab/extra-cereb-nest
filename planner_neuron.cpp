@@ -96,11 +96,7 @@ mynest::planner_neuron::init_state_( const Node& proto )
 void
 mynest::planner_neuron::init_buffers_()
 {
-  nest::Time::ms trial_length_ms(P_.trial_length_);
-  nest::Time trial_length(trial_length_ms);
-
-  V_.buffer_size_ = trial_length.get_steps();
-  B_.trial_spikes_.resize(V_.buffer_size_);
+  // Moved to update() to save temporal reference
 }
 
 void
@@ -128,24 +124,41 @@ mynest::planner_neuron::update( nest::Time const& T, const long from, const long
 
   nest::Time::ms trial_length_ms(P_.trial_length_);
   nest::Time trial_length(trial_length_ms);
+  long prism = (long)P_.prism_deviation_;
 
   for ( long lag = from; lag < to; ++lag )
   {
     nest::Time now = T + nest::Time::step( lag );
 
-    long n_spikes = 0;
+    // init buffer
+    if (B_.trial_spikes_.count(prism) == 0)
+    {
+      nest::Time::ms trial_length_ms(P_.trial_length_);
+      nest::Time trial_length(trial_length_ms);
 
-    if ( now.get_ms() <= P_.trial_length_ )
+      V_.buffer_size_ = trial_length.get_steps();
+      std::vector<long> buff;
+      buff.resize(V_.buffer_size_);
+
+      B_.trial_spikes_[prism] = buff;
+
+      V_.buffer_start_ = now.get_ms();
+    }
+    //
+
+    long n_spikes = 0;
+    nest::delay spike_i = now.get_steps() % V_.buffer_size_;
+
+    if ( now.get_ms() - V_.buffer_start_ <= P_.trial_length_ )
     {
       librandom::RngPtr rng = nest::kernel().rng_manager.get_rng( get_thread() );
       n_spikes = V_.poisson_dev_.ldev( rng );
 
-      B_.trial_spikes_[now.get_steps()] = n_spikes;
+      B_.trial_spikes_[prism][spike_i] = n_spikes;
     }
     else
     {
-      nest::delay spike_i = now.get_steps() % V_.buffer_size_;
-      n_spikes = B_.trial_spikes_[spike_i];
+      n_spikes = B_.trial_spikes_[prism][spike_i];
     }
 
     if (n_spikes > 0)

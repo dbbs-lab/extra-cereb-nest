@@ -40,7 +40,7 @@ class Events(list):
 
 class Planner(PopView):
     def __init__(self, n, prism=0.0):
-        self.pop = nest.Create(
+        pop = nest.Create(
             "planner_neuron",
             n=n,
             params={
@@ -51,9 +51,9 @@ class Planner(PopView):
                 "gain_rate": 1.0,
                 }
             )
-        super().__init__(self.pop)
+        super().__init__(pop)
 
-    def change_prism(self, prism):
+    def set_prism(self, prism):
         nest.SetStatus(self.pop, {"prism_deviation": float(prism)})
 
 

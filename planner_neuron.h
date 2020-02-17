@@ -44,7 +44,7 @@ private:
 
   struct Buffers_
   {
-    std::vector<long> trial_spikes_;
+    std::map<long, std::vector<long>> trial_spikes_;
   };
 
   struct Parameters_
@@ -66,6 +66,7 @@ private:
     double rate_; //!< process rate in Hz
     long buffer_size_;
     librandom::PoissonRandomDev poisson_dev_; //!< Random deviate generator
+    long buffer_start_;
   };
 
   Buffers_ B_;
