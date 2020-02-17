@@ -94,6 +94,7 @@ class Cortex(PopView):
 
     def integrate(self, trial_i=0):
         pop_size = len(self.joints[1].pop)
+        id_min = min(self.joints[1].pop)
 
         n_ids, ts = self.joints[1].get_events()
         events = Events(n_ids, ts)
@@ -106,7 +107,7 @@ class Cortex(PopView):
         torques = np.zeros(trial_len)
         for e in trial_events:
             t = int(np.floor(e.t)) - trial_len * trial_i
-            torques[t] += 2.0 * e.n_id / pop_size - 1.0
+            torques[t] += 2.0 * (e.n_id - id_min) / pop_size - 1.0
 
         # torques = [2.0*n_id / pop_size - 1.0 for n_id in trial_events.n_ids]
         vel = np.array(list(accumulate(torques))) / pop_size
