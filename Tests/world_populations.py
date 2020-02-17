@@ -98,6 +98,7 @@ class Cortex(PopView):
     def integrate(self, trial_i=0):
         pop_size = len(self.joints[1].pop)
         id_min = min(self.joints[1].pop)
+
         n_ids, ts = self.joints[1].get_events()
         events = Events(n_ids, ts)
 
@@ -230,12 +231,9 @@ class InverseDCN(PopView):
             self.plus = PopView(pop_1)
             self.minus = PopView(pop_2)
 
-        self.torques = np.zeros(trial_len)
-        self.vel = np.zeros(trial_len)
-        self.pos = np.zeros(trial_len)
-
     def integrate(self, trial_i=0):
         pop_size = len(self.pop)
+
         n_ids, ts = self.get_events()
         events = Events(n_ids, ts)
 
@@ -244,13 +242,13 @@ class InverseDCN(PopView):
             if trial_len*trial_i <= e.t < trial_len*(trial_i+1)
         )
 
-        self.torques = np.zeros(trial_len)
+        torques = np.zeros(trial_len)
         for e in trial_events:
             t = int(np.floor(e.t)) - trial_len * trial_i
-            self.torques[t] += 1.0 if e.n_id in self.plus.pop else -1.0
+            torques[t] += 1.0 if e.n_id in self.plus.pop else -1.0
 
-        self.vel = np.array(list(accumulate(self.torques))) / pop_size
-        self.pos = np.array(list(accumulate(self.vel))) / pop_size
+        vel = np.array(list(accumulate(torques))) / pop_size
+        pos = np.array(list(accumulate(vel))) / pop_size
 
-        final_x = self.pos[-1]
+        final_x = pos[-1]
         return final_x

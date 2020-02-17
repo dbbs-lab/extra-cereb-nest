@@ -72,6 +72,18 @@ def create_brain(prism):
     return cortex, cereb_for, cereb_inv
 
 
+def create_cortex(prism):
+    trajectories.save_file(prism, trial_len)
+
+    define_models()
+
+    planner = Planner(MF_number, prism)
+    cortex = Cortex(MF_number)
+
+    planner.connect(cortex)
+    return cortex
+
+
 def get_weights(pop1, pop2):
     conns = nest.GetConnections(pop1[::50], pop2[::50])
     weights = nest.GetStatus(conns, "weight")
@@ -89,20 +101,20 @@ def test_learning():
 
     # Get reference x
     nest.ResetKernel()
-    cortex, _, _ = create_brain(0.0)
+    cortex = create_cortex(0.0)
     xs = []
 
     for i in range(6):
         nest.Simulate(trial_len)
         x = cortex.integrate(trial_i=i)
         if i >= 1:
-             xs.append(x)
+            xs.append(x)
         # xs.append(x)
 
     x_0 = np.mean(xs)
 
     nest.ResetKernel()
-    cortex, _, _ = create_brain(10.0)
+    cortex = create_cortex(10.0)
     xs = []
 
     for i in range(6):
