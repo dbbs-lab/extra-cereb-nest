@@ -39,18 +39,16 @@ class Events(list):
 
 
 class Planner(PopView):
-    def __init__(self, n, prism=0.0):
-        pop = nest.Create(
-            "planner_neuron",
-            n=n,
-            params={
-                "trial_length": trial_len,
-                "target": 0.0,
-                "prism_deviation": int(prism),
-                "baseline_rate": 25.0,
-                "gain_rate": 1.0,
-                }
-            )
+    def __init__(self, n, prism=0.0, **kwargs):
+        params = {
+            "trial_length": trial_len,
+            "target": 0.0,
+            "prism_deviation": int(prism),
+            "baseline_rate": 25.0,
+            "gain_rate": 1.0,
+            }
+        params.update(kwargs)
+        pop = nest.Create("planner_neuron", n=n, params=params)
         super().__init__(pop)
 
     def set_prism(self, prism):
@@ -66,18 +64,16 @@ class JointFibers(PopView):
 
 
 class Cortex(PopView):
-    def __init__(self, n):
-        pop = nest.Create(
-            "cortex_neuron",
-            n=n,
-            params={
-                "trial_length": trial_len,
-                "fibers_per_joint": n//4,
-                "rbf_sdev": n/8,
-                "baseline_rate": 7.0,
-                "gain_rate": 4.0,
-                }
-            )
+    def __init__(self, n, **kwargs):
+        params = {
+            "trial_length": trial_len,
+            "fibers_per_joint": n//4,
+            "rbf_sdev": n/32,
+            "baseline_rate": 7.0,
+            "gain_rate": 4.0,
+        }
+        params.update(kwargs)
+        pop = nest.Create("cortex_neuron", n=n, params=params)
 
         for i, neuron in enumerate(pop):
             nest.SetStatus([neuron], {"joint_id": i // (n//4),

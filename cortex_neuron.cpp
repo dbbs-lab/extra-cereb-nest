@@ -184,7 +184,8 @@ mynest::cortex_neuron::update( nest::Time const& origin, const long from, const 
     long tick = origin.get_steps() + lag;
     double sdev = P_.rbf_sdev_;
     double mean = P_.fiber_id_;
-    double desired = P_.fibers_per_joint_ * B_.traj_[P_.joint_id_][(int)(tick * time_res) % P_.trial_length_];
+    // double desired = P_.fibers_per_joint_ * B_.traj_[P_.joint_id_][(int)(tick * time_res) % P_.trial_length_];
+    double desired;
 
     double baseline_rate;
     double rbf_rate;
@@ -195,10 +196,14 @@ mynest::cortex_neuron::update( nest::Time const& origin, const long from, const 
     if ( j_id == 1 )  // Second joint
     {
       rbf_rate = P_.gain_rate_ * std::max( 0.0, in_rate );
+
+      double scale = P_.fibers_per_joint_ - 4 * sdev;
+      desired = 2*sdev + scale * B_.traj_[P_.joint_id_][(int)(tick * time_res) % P_.trial_length_];
     }
     else
     {
       rbf_rate = P_.gain_rate_ * baseline_rate;
+      desired = P_.fibers_per_joint_ * B_.traj_[P_.joint_id_][(int)(tick * time_res) % P_.trial_length_];
     }
 
     double rate = baseline_rate + rbf_rate * exp(-pow(((desired - mean) / sdev), 2 ));
