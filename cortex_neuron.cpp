@@ -197,8 +197,8 @@ mynest::cortex_neuron::update( nest::Time const& origin, const long from, const 
     {
       rbf_rate = P_.gain_rate_ * std::max( 0.0, in_rate );
 
-      double scale = P_.fibers_per_joint_ - 4 * sdev;
-      desired = 2*sdev + scale * B_.traj_[P_.joint_id_][(int)(tick * time_res) % P_.trial_length_];
+      double scale = P_.fibers_per_joint_ - 2 * sdev;
+      desired = 1*sdev + scale * B_.traj_[P_.joint_id_][(int)(tick * time_res) % P_.trial_length_];
     }
     else
     {
