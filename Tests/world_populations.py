@@ -108,6 +108,13 @@ class Cortex(PopView):
             t = int(np.floor(e.t)) - trial_len * trial_i
             self.torques[t] += 2.0 * (e.n_id - id_min) / pop_size - 1.0
 
+        def moving_average(a, n=10):
+            ret = np.cumsum(a, dtype=float)
+            ret[n:] = ret[n:] - ret[:-n]
+            return ret[n - 1:] / n
+
+        self.torques = moving_average(self.torques)
+
         # torques = [2.0*n_id / pop_size - 1.0 for n_id in trial_events.n_ids]
         self.vel = np.array(list(accumulate(self.torques))) / pop_size
         self.pos = np.array(list(accumulate(self.vel))) / pop_size
