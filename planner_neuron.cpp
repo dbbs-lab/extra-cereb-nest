@@ -167,7 +167,7 @@ mynest::planner_neuron::update( nest::Time const& T, const long from, const long
       nest::kernel().event_delivery_manager.send( *this, e, lag );
 
       e.set_multiplicity( n_spikes );
-      e.get_receiver().handle( e );
+      // e.get_receiver().handle( e );
     }
   }
 }

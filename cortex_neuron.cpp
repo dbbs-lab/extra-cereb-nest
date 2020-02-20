@@ -217,7 +217,7 @@ mynest::cortex_neuron::update( nest::Time const& origin, const long from, const 
       nest::SpikeEvent se;
       se.set_multiplicity( n_spikes );
       nest::kernel().event_delivery_manager.send( *this, se, lag );
-      se.get_receiver().handle( se );
+      // se.get_receiver().handle( se );
 
       // set the spike times, respecting the multiplicity
       //for ( long i = 0; i < n_spikes; i++ )
