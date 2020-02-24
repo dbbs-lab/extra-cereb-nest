@@ -236,9 +236,8 @@ def create_cerebellum():
 
 
 def create_forward_cerebellum():
-    sIO = SensoryIO(IO_number)
     MF, GR, PC, IO, DCN = create_cerebellum()
-    nest.Connect(sIO.pop, IO, 'one_to_one', syn_spec={'weight': 10.0})
+    sIO = SensoryIO(IO[:IO_number], IO[IO_number:])
 
     return Cerebellum(
         PopView(MF), PopView(GR), PopView(PC),
@@ -247,9 +246,8 @@ def create_forward_cerebellum():
 
 
 def create_inverse_cerebellum():
-    mIO = MotorIO(IO_number)
     MF, GR, PC, IO, DCN = create_cerebellum()
-    nest.Connect(mIO.pop, IO, 'one_to_one', syn_spec={'weight': 10.0})
+    mIO = MotorIO(IO[:IO_number], IO[IO_number:])
 
     return Cerebellum(
         PopView(MF), PopView(GR), PopView(PC),

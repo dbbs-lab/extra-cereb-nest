@@ -35,6 +35,7 @@ def simulate_closed_loop(n=400, prism=0.0, sensory_error=0.0):
     cortex = Cortex(n)
     j1 = cortex.slice(n//4, n//2)
 
+    raise Exception("Deprecated IO constructor")
     sIO = SensoryIO(n, sensory_error)
     sIOm = sIO.minus
     sIOp = sIO.plus

@@ -124,7 +124,8 @@ class Cortex(PopView):
 
 
 class SensoryIO(PopView):
-    def __init__(self, n, sensory_error=0.0):
+    def __init__(self, pop_1, pop_2, sensory_error=0.0):
+        n = len(pop_1) + len(pop_2)
         sensory_io = nest.Create(
             'poisson_generator',
             n=n,
@@ -132,8 +133,12 @@ class SensoryIO(PopView):
         )
         super().__init__(sensory_io)
 
-        self.minus = self.slice(0, n//2)
-        self.plus = self.slice(n//2)
+        self.plus = self.slice(0, len(pop_1))
+        self.minus = self.slice(len(pop_2))
+
+        conn_dict = {"rule": "one_to_one"}
+        nest.Connect(self.plus.pop, pop_1, conn_dict, {'weight': 10.0})
+        nest.Connect(self.minus.pop, pop_2, conn_dict, {'weight': 10.0})
 
         self.set_rate(sensory_error)
 
@@ -150,12 +155,17 @@ class SensoryIO(PopView):
 
 
 class MotorIO(PopView):
-    def __init__(self, n, sensory_error=0.0):
+    def __init__(self, pop_1, pop_2, sensory_error=0.0):
+        n = len(pop_1) + len(pop_2)
         motor_io = nest.Create('spike_generator', n=n)
         super().__init__(motor_io)
 
-        self.plus = self.slice(0, n//2)  # [0:n]
-        self.minus = self.slice(n//2)    # [n:]
+        self.plus = self.slice(0, len(pop_1))
+        self.minus = self.slice(len(pop_2))
+
+        conn_dict = {"rule": "one_to_one"}
+        nest.Connect(self.plus.pop, pop_1, conn_dict, {'weight': 10.0})
+        nest.Connect(self.minus.pop, pop_2, conn_dict, {'weight': 10.0})
 
         self.set_rate(sensory_error)
 

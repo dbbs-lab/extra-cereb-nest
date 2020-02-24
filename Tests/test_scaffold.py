@@ -14,7 +14,8 @@ nest.Install("extracerebmodule")
 
 
 def create_brain(prism):
-    hdf5_file = 'scaffold_network_VOR.hdf5'
+    # hdf5_file = 'scaffold_network_VOR.hdf5'
+    hdf5_file = 'mouse_cerebellum_200.hdf5'
     scaffold_model = from_hdf5(hdf5_file)
     # scaffold_model.configuration.verbosity = 3
 
@@ -62,13 +63,12 @@ def create_brain(prism):
 
     # Define population views
     MF_number = len(f_MF)
-    IO_number = len(f_IOp) + len(f_IOn)
 
     planner_pv = Planner(MF_number, prism)
     cortex_pv = Cortex(MF_number)
 
-    f_IO_pv = SensoryIO(IO_number)  # External from the scaffold,
-    i_IO_pv = MotorIO(IO_number)    # to be connected after
+    f_IO_pv = SensoryIO(f_IOp, f_IOn)
+    i_IO_pv = MotorIO(i_IOp, i_IOn)
 
     f_DCN_pv = DirectDCN(f_DCNp, f_DCNn)
     i_DCN_pv = InverseDCN(i_DCNp, i_DCNn)
@@ -77,20 +77,10 @@ def create_brain(prism):
     i_MF_pv = PopView(i_MF)
     #
 
-    # Connect populations
-    def connect(pop_1, pop_2, w=1.0):
-        conn_dict = {"rule": "one_to_one"}
-        nest.Connect(pop_1, pop_2, conn_dict, {'weight': w})
-
     planner_pv.connect(cortex_pv)
 
     cortex_pv.connect(f_MF_pv)  # Efference copy
     planner_pv.connect(i_MF_pv)  # Sensory input
-
-    connect(f_IO_pv.plus.pop, f_IOp, 10.0)
-    connect(f_IO_pv.minus.pop, f_IOn, 10.0)
-    connect(i_IO_pv.plus.pop, i_IOp, 10.0)
-    connect(i_IO_pv.minus.pop, i_IOn, 10.0)
 
     conn_dict = {"rule": "fixed_indegree", "indegree": 1}
     nest.Connect(f_DCNp, cortex_pv.pop, conn_dict, {'weight': 1.0})
