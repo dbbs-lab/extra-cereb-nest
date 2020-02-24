@@ -134,7 +134,7 @@ class SensoryIO(PopView):
         super().__init__(sensory_io)
 
         self.plus = self.slice(0, len(pop_1))
-        self.minus = self.slice(len(pop_2))
+        self.minus = self.slice(len(pop_1))
 
         conn_dict = {"rule": "one_to_one"}
         nest.Connect(self.plus.pop, pop_1, conn_dict, {'weight': 10.0})
@@ -161,7 +161,7 @@ class MotorIO(PopView):
         super().__init__(motor_io)
 
         self.plus = self.slice(0, len(pop_1))
-        self.minus = self.slice(len(pop_2))
+        self.minus = self.slice(len(pop_1))
 
         conn_dict = {"rule": "one_to_one"}
         nest.Connect(self.plus.pop, pop_1, conn_dict, {'weight': 10.0})
