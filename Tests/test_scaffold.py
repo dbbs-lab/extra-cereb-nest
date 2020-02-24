@@ -79,7 +79,7 @@ def create_brain(prism):
 
     # Connect populations
     def connect(pop_1, pop_2, w=1.0):
-        conn_dict = {"rule": "fixed_indegree", "indegree": 1}
+        conn_dict = {"rule": "one_to_one"}
         nest.Connect(pop_1, pop_2, conn_dict, {'weight': w})
 
     planner_pv.connect(cortex_pv)
