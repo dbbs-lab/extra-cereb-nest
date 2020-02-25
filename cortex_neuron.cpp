@@ -35,6 +35,7 @@ mynest::cortex_neuron::Parameters_::Parameters_()
   , fibers_per_joint_( 100 )
   , rbf_sdev_( 10.0 )
   , baseline_rate_( 20.0 )
+  , background_noise_( 5.0 )
   , gain_rate_( 3.0 )
   , to_file_( false )
 {
@@ -53,6 +54,7 @@ mynest::cortex_neuron::Parameters_::get( DictionaryDatum& d ) const
   def< long >( d, mynames::fibers_per_joint, fibers_per_joint_ );
   def< double >( d, mynames::rbf_sdev, rbf_sdev_ );
   def< double >( d, mynames::baseline_rate, baseline_rate_ );
+  def< double >( d, mynames::background_noise, background_noise_ );
   def< double >( d, mynames::gain_rate, gain_rate_ );
   def< bool >( d, nest::names::to_file, to_file_ );
 }
@@ -74,6 +76,7 @@ mynest::cortex_neuron::Parameters_::set( const DictionaryDatum& d )
   updateValue< long >( d, mynames::fibers_per_joint, fibers_per_joint_ );
   updateValue< double >( d, mynames::rbf_sdev, rbf_sdev_ );
   updateValue< double >( d, mynames::baseline_rate, baseline_rate_ );
+  updateValue< double >( d, mynames::background_noise, background_noise_ );
   updateValue< double >( d, mynames::gain_rate, gain_rate_ );
   updateValue< bool >( d, nest::names::to_file, to_file_ );
 }
@@ -186,13 +189,13 @@ mynest::cortex_neuron::update( nest::Time const& origin, const long from, const 
     double mean = P_.fiber_id_;
     // double desired = P_.fibers_per_joint_ * B_.traj_[P_.joint_id_][(int)(tick * time_res) % P_.trial_length_];
     double desired;
-
+	double background_noise;
     double baseline_rate;
     double rbf_rate;
     int j_id = P_.joint_id_;
 
     baseline_rate = P_.baseline_rate_;
-
+	background_noise = P_.background_noise_;
     if ( j_id == 1 )  // Second joint
     {
       rbf_rate = P_.gain_rate_ * std::max( 0.0, in_rate );
@@ -206,7 +209,7 @@ mynest::cortex_neuron::update( nest::Time const& origin, const long from, const 
       desired = P_.fibers_per_joint_ * B_.traj_[P_.joint_id_][(int)(tick * time_res) % P_.trial_length_];
     }
 
-    double rate = baseline_rate + rbf_rate * exp(-pow(((desired - mean) / sdev), 2 ));
+    double rate = background_noise + rbf_rate * exp(-pow(((desired - mean) / sdev), 2 ));
 
     V_.poisson_dev_.set_lambda( time_res * rate * 1e-3 );
 

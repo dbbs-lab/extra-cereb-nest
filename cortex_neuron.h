@@ -55,6 +55,7 @@ private:
     long fibers_per_joint_;
     double rbf_sdev_;
     double baseline_rate_;
+	double background_noise_;
     double gain_rate_;
     bool to_file_;
 
