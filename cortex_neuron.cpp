@@ -201,12 +201,13 @@ mynest::cortex_neuron::update( nest::Time const& origin, const long from, const 
       rbf_rate = P_.gain_rate_ * std::max( 0.0, in_rate );
 
       double scale = P_.fibers_per_joint_ - 2 * sdev;
-      desired = 1*sdev + scale * B_.traj_[P_.joint_id_][(int)(tick * time_res) % P_.trial_length_];
+      desired = sdev + scale * B_.traj_[P_.joint_id_][(int)(tick * time_res) % P_.trial_length_];
     }
     else
     {
       rbf_rate = P_.gain_rate_ * baseline_rate;
-      desired = P_.fibers_per_joint_ * B_.traj_[P_.joint_id_][(int)(tick * time_res) % P_.trial_length_];
+	  double scale = P_.fibers_per_joint_ - 2 * sdev;
+      desired = sdev + scale * B_.traj_[P_.joint_id_][(int)(tick * time_res) % P_.trial_length_];
     }
 
     double rate = background_noise + rbf_rate * exp(-pow(((desired - mean) / sdev), 2 ));
