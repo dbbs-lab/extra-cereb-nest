@@ -119,7 +119,7 @@ mynest::cortex_neuron::init_buffers_()
 
   double time_res = nest::Time::get_resolution().get_ms();  // 0.1
   // long ticks = 100.0 / time_res;  // 100ms
-  V_.buffer_size_ = 50.0 / time_res;
+  V_.buffer_size_ = 100.0 / time_res;
 
   B_.traj_.resize(4, std::vector<double>(P_.trial_length_));
   std::ifstream traj_file("JointTorques.dat");
@@ -167,27 +167,28 @@ mynest::cortex_neuron::update( nest::Time const& origin, const long from, const 
     return;
   }
 
-  double time_res = nest::Time::get_resolution().get_ms();  // 0.1
-  long buf_size = V_.buffer_size_;
+  double time_res = nest::Time::get_resolution().get_ms();
   librandom::RngPtr rng = nest::kernel().rng_manager.get_rng( get_thread() );
-
-  double spike_count = 0;
-  long tick = origin.get_steps();
-  for ( long i = 0; i < buf_size; i++ )
-  {
-    if ( B_.in_spikes_.count(tick - i) )
+  double in_rate = 0.0;
+  
+  if (P_.joint_id_ == 1) {
+    double buf_size = V_.buffer_size_;
+    double spike_count = 0;
+    long tick = origin.get_steps();
+    for ( long i = 0; i < buf_size; i++ )
     {
-      spike_count += B_.in_spikes_[tick - i];
+      if ( B_.in_spikes_.count(tick - i) )
+      {
+        spike_count += B_.in_spikes_[tick - i];
+      }
     }
+    in_rate = std::max( 0.0, 1000.0 * spike_count / (buf_size * time_res) );
   }
-  double in_rate = std::max( 0.0, 1000.0 * spike_count / (buf_size * time_res) );
-
   for ( long lag = from; lag < to; ++lag )
   {
     long tick = origin.get_steps() + lag;
     double sdev = P_.rbf_sdev_;
     double mean = P_.fiber_id_;
-    // double desired = P_.fibers_per_joint_ * B_.traj_[P_.joint_id_][(int)(tick * time_res) % P_.trial_length_];
     double desired;
 	double background_noise;
     double baseline_rate;
@@ -199,19 +200,18 @@ mynest::cortex_neuron::update( nest::Time const& origin, const long from, const 
     if ( j_id == 1 )  // Second joint
     {
       rbf_rate = P_.gain_rate_ * std::max( 0.0, in_rate );
-
-      double scale = P_.fibers_per_joint_ - 2 * sdev;
-      desired = sdev + scale * B_.traj_[P_.joint_id_][(int)(tick * time_res) % P_.trial_length_];
+      double scale = P_.fibers_per_joint_ * 0.9;
+      desired = sdev / 2.0 + scale * B_.traj_[P_.joint_id_][(int)(tick * time_res) % P_.trial_length_];
     }
     else
     {
-      rbf_rate = P_.gain_rate_ * baseline_rate;
-	  double scale = P_.fibers_per_joint_ - 2 * sdev;
-      desired = sdev + scale * B_.traj_[P_.joint_id_][(int)(tick * time_res) % P_.trial_length_];
+      rbf_rate = baseline_rate;
+	  double scale = P_.fibers_per_joint_ * 0.9;
+      desired =  sdev / 2.0 + scale * B_.traj_[P_.joint_id_][(int)(tick * time_res) % P_.trial_length_];
     }
 
     double rate = background_noise + rbf_rate * exp(-pow(((desired - mean) / sdev), 2 ));
-
+	
     V_.poisson_dev_.set_lambda( time_res * rate * 1e-3 );
 
     long n_spikes = V_.poisson_dev_.ldev( rng );
@@ -219,7 +219,7 @@ mynest::cortex_neuron::update( nest::Time const& origin, const long from, const 
     if ( n_spikes > 0 )
     {
       nest::SpikeEvent se;
-      se.set_multiplicity( n_spikes );
+      se.set_multiplicity( 1 );
       nest::kernel().event_delivery_manager.send( *this, se, lag );
       // se.get_receiver().handle( se );
 
