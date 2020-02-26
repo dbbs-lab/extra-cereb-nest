@@ -44,8 +44,8 @@ class Planner(PopView):
             "trial_length": trial_len,
             "target": 0.0,
             "prism_deviation": int(prism),
-            "baseline_rate": 25.0,
-            "gain_rate": 1.0,
+            "baseline_rate": 10.0,
+            "gain_rate": 2.0,
             }
         params.update(kwargs)
         pop = nest.Create("planner_neuron", n=n, params=params)
@@ -69,8 +69,8 @@ class Cortex(PopView):
             "trial_length": trial_len,
             "fibers_per_joint": n//4,
             "rbf_sdev": n/32,
-            "baseline_rate": 7.0,
-            "gain_rate": 4.0,
+            "baseline_rate": 200.0,
+            "gain_rate": 5.0,
         }
         params.update(kwargs)
         pop = nest.Create("cortex_neuron", n=n, params=params)
