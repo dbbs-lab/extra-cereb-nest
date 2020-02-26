@@ -2,40 +2,11 @@ import numpy as np
 import matplotlib.pyplot as plt
 from itertools import accumulate
 import nest
-from population_view import PopView
+from population_view import PopView, Event, Events
 from world import select_trial_events
 import trajectories
 
 trial_len = 300
-
-
-class Event:
-    def __init__(self, n_id, t):
-        self.n_id = n_id
-        self.t = t
-
-
-class Events(list):
-    def __init__(self, *args):
-        if len(args) == 1:
-            self._from_list(*args)
-        if len(args) == 2:
-            self._from_ids_ts(*args)
-
-    def _from_list(self, ev_list):
-        super().__init__(ev_list)
-
-    def _from_ids_ts(self, n_ids, ts):
-        ev_list = [Event(n_id, t) for (n_id, t) in zip(n_ids, ts)]
-        self._from_list(ev_list)
-
-    @property
-    def n_ids(self):
-        return (e.n_id for e in self)
-
-    @property
-    def ts(self):
-        return (e.t for e in self)
 
 
 class Planner(PopView):
