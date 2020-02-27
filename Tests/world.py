@@ -79,3 +79,63 @@ def to_degrees(ref_mean, x):
     x_deg = x * 10.0 / ref_mean
 
     return x_deg
+
+
+def calibrate(planner, cortex):
+    # Get reference x
+    xs = []
+
+    nest.Simulate(trial_len)
+    trial_offset = 1
+
+    planner.set_prism(0.0)
+
+    print("Comupting x_0")
+    for i in range(10):
+        nest.Simulate(trial_len)
+        x = cortex.integrate(trial_i=i+trial_offset)
+        xs.append(x)
+
+    trial_offset += 10
+
+    x_0 = np.mean(xs)
+    print("x_0", x_0)
+
+    planner.set_prism(10.0)
+    nest.Simulate(trial_len)
+    trial_offset += 1
+
+    print("Comupting x_10")
+    xs = []
+
+    for i in range(10):
+        nest.Simulate(trial_len)
+        x = cortex.integrate(trial_i=i+trial_offset)
+        xs.append(x)
+
+    trial_offset += 10
+
+    x_10 = np.mean(xs)
+    print("x_10", x_10)
+
+    get_error = get_error_function(x_0, x_10)
+
+    # Get open loop error
+    xs = []
+
+    planner.set_prism(25.0)
+    nest.Simulate(trial_len)
+    trial_offset += 1
+
+    for i in range(10):
+        nest.Simulate(trial_len)
+
+        x = cortex.integrate(trial_i=i+trial_offset)
+        if i >= 1:
+            xs.append(x)
+
+    trial_offset += 10
+
+    open_loop_error = get_error(np.mean(xs))
+
+    return x_0, x_10, open_loop_error
