@@ -26,11 +26,11 @@ class Events(list):
 
     @property
     def n_ids(self):
-        return (e.n_id for e in self)
+        return [e.n_id for e in self]
 
     @property
     def ts(self):
-        return (e.t for e in self)
+        return [e.t for e in self]
 
 
 def new_spike_detector(pop):
@@ -88,8 +88,18 @@ class PopView:
     def get_rate(self, n_trials=1):
         return get_rate(self.detector, self.pop, n_trials)
 
-    def plot_spikes(self, title='', ax=None):
+    def plot_spikes(self, boundaries=None, title='', ax=None):
         evs, ts = self.get_events()
+
+        if boundaries is not None:
+            i_0, i_1 = boundaries
+
+            selected = Events(
+                Event(e.n_id, e.t) for e in Events(evs, ts)
+                if trial_len*i_0 <= e.t < trial_len*i_1
+            )
+            evs, ts = selected.n_ids, selected.ts
+
         plot_spikes(evs, ts, self.pop, title, ax)
 
     def reset_per_trial_rate(self):
