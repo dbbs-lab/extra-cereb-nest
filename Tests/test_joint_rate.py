@@ -3,7 +3,7 @@ import matplotlib.pylab as plt
 
 nest.Install("extracerebmodule")
 
-n = 300  # Number of MFs
+n = 111  # Number of MFs
 trial_len = 300  # [ms]
 n_trial = 20  # Number of trials
 target = 0.0  # [deg] final position of J1
@@ -26,12 +26,12 @@ cortex = nest.Create(
         params={
             "trial_length": trial_len,
             "fibers_per_joint": n//4,
-            "rbf_sdev": 15.0,
+            "rbf_sdev": 0.15 * n,
             }
         )
 
 for i, neuron in enumerate(cortex):
-    nest.SetStatus([neuron], {"joint_id": i // (n//4),
+    nest.SetStatus([neuron], {"joint_id": i * 4 // n,
                               "fiber_id": i % (n//4)})
 
 nest.Connect(planner, cortex, 'one_to_one')
@@ -42,13 +42,21 @@ nest.Connect(planner, planner_sd)
 ctx_sd = nest.Create("spike_detector")
 nest.Connect(cortex, ctx_sd)
 
+prev_events_planner = 0
+prev_events_ctx = 0
 for trial in range(n_trial):
     nest.Simulate(trial_len)
 
-    simtime = (trial + 1) * trial_len
     n_events = nest.GetStatus(planner_sd, keys="n_events")[0]
-    rate = n_events / simtime * 1e3 / n
+    rate = (n_events-prev_events_planner) / trial_len * 1e3 / n
+    prev_events_planner = n_events
     print("Planner rate:", rate)
+
+    n_events = nest.GetStatus(ctx_sd, keys="n_events")[0]
+    rate = (n_events-prev_events_ctx) / trial_len * 1e3 / n
+    prev_events_ctx = n_events
+    print("Cortex rate:", rate)
+
 
 fig, axs = plt.subplots(2)
 
