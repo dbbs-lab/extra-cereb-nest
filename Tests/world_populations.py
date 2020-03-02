@@ -245,5 +245,5 @@ class InverseDCN(PopView):
         self.vel = np.array(list(accumulate(self.torques))) / pop_size
         self.pos = np.array(list(accumulate(self.vel))) / pop_size
 
-        final_x = pos[-1]
+        final_x = self.pos[-1]
         return final_x
