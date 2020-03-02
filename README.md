@@ -16,7 +16,7 @@ export NEST_INSTALL_DIR=$HOME/nest-simulator-install
 2. Clone this GitHub Repository in a directory outside NEST source and build directories. E.g.:
 ```
 cd $HOME
-git clone https://github.com/alberto-antonietti/extra-cereb-nest/
+git clone https://github.com/dbbs-lab/extra-cereb-nest/
 ```
 3. Move to Extra-CerebNEST directory and create a new folder where you will build the extension module
 ```
