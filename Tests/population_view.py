@@ -117,7 +117,7 @@ class PopView:
             )
             n_events = len(trial_events)
         else:
-            print("Waring: deprecated, pass trial_i explicitly")
+            print("Warning: deprecated, pass trial_i explicitly")
             n_events = nest.GetStatus(self.detector, keys="n_events")[0]
 
             n_events -= self.total_n_events
