@@ -260,8 +260,15 @@ class InverseDCN(PopView):
             t = int(np.floor(e.t)) - trial_len * trial_i
             torques[t] += 1.0 if e.n_id in self.plus.pop else -1.0
 
-        vel = np.array(list(accumulate(torques))) / pop_size
-        pos = np.array(list(accumulate(vel))) / pop_size
+        def moving_average(a, n=10):
+            ret = np.cumsum(a, dtype=float)
+            ret[n:] = ret[n:] - ret[:-n]
+            return ret[n - 1:] / n
+
+        self.torques = moving_average(self.torques)
+
+        self.vel = np.array(list(accumulate(self.torques))) / pop_size
+        self.pos = np.array(list(accumulate(self.vel))) / pop_size
 
         final_x = pos[-1]
         return final_x
