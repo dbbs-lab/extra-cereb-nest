@@ -214,6 +214,10 @@ class InverseDCN(PopView):
 
             self.plus = PopView(pop_1)
             self.minus = PopView(pop_2)
+        
+        self.torques = np.zeros(trial_len)
+        self.vel = np.zeros(trial_len)
+        self.pos = np.zeros(trial_len)
 
     def integrate(self, trial_i=0):
         pop_size = len(self.pop)
@@ -226,7 +230,7 @@ class InverseDCN(PopView):
             if trial_len*trial_i <= e.t < trial_len*(trial_i+1)
         )
 
-        torques = np.zeros(trial_len)
+        self.torques = np.zeros(trial_len)
         for e in trial_events:
             t = int(np.floor(e.t)) - trial_len * trial_i
             torques[t] += 1.0 if e.n_id in self.plus.pop else -1.0
