@@ -48,22 +48,24 @@ def test_rates():
 
     planner.set_prism(15.0)
     nest.Simulate(trial_len)
-    planner.get_per_trial_rate()
+    planner.get_per_trial_rate(0)
 
     planner.set_prism(20)
 
     nest.Simulate(trial_len)
-    planner.get_per_trial_rate()
+    planner.get_per_trial_rate(1)
 
     planner.set_prism(15)
     nest.Simulate(trial_len)
-    planner.get_per_trial_rate()
+    planner.get_per_trial_rate(2)
 
     print("Rates:", planner.rates_history)
     assert planner.rates_history[0] == planner.rates_history[-1]
 
     planner.set_prism(-50)
     nest.Simulate(trial_len)
+
+    print(planner.rates_history)
 
 
 test_spikes()
