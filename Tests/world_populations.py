@@ -233,7 +233,7 @@ class InverseDCN(PopView):
         self.torques = np.zeros(trial_len)
         for e in trial_events:
             t = int(np.floor(e.t)) - trial_len * trial_i
-            torques[t] += 1.0 if e.n_id in self.plus.pop else -1.0
+            self.torques[t] += 1.0 if e.n_id in self.plus.pop else -1.0
 
         def moving_average(a, n=10):
             ret = np.cumsum(a, dtype=float)
