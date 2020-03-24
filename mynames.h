@@ -53,6 +53,7 @@ extern const Name trial_length;
 extern const Name target;
 extern const Name prism_deviation;
 extern const Name baseline_rate;
+extern const Name background_noise;
 extern const Name gain_rate;
 extern const Name joint_id;
 extern const Name fiber_id;

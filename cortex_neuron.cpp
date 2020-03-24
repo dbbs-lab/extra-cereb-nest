@@ -34,8 +34,9 @@ mynest::cortex_neuron::Parameters_::Parameters_()
   , fiber_id_( 0 )
   , fibers_per_joint_( 100 )
   , rbf_sdev_( 10.0 )
-  , baseline_rate_( 10.0 )
-  , gain_rate_( 10.0 )
+  , baseline_rate_( 20.0 )
+  , background_noise_( 5.0 )
+  , gain_rate_( 3.0 )
   , to_file_( false )
 {
 }
@@ -53,6 +54,7 @@ mynest::cortex_neuron::Parameters_::get( DictionaryDatum& d ) const
   def< long >( d, mynames::fibers_per_joint, fibers_per_joint_ );
   def< double >( d, mynames::rbf_sdev, rbf_sdev_ );
   def< double >( d, mynames::baseline_rate, baseline_rate_ );
+  def< double >( d, mynames::background_noise, background_noise_ );
   def< double >( d, mynames::gain_rate, gain_rate_ );
   def< bool >( d, nest::names::to_file, to_file_ );
 }
@@ -66,10 +68,15 @@ mynest::cortex_neuron::Parameters_::set( const DictionaryDatum& d )
     throw nest::BadProperty( "The trial length cannot be zero or negative." );
   }
   updateValue< long >( d, mynames::joint_id, joint_id_ );
+  //if ( joint_id_ > 3 || joint_id_ < 0 )
+  //{
+  //  throw nest::BadProperty( "The joint ID cannot be negative or grater than 3" );
+  //}
   updateValue< long >( d, mynames::fiber_id, fiber_id_ );
   updateValue< long >( d, mynames::fibers_per_joint, fibers_per_joint_ );
   updateValue< double >( d, mynames::rbf_sdev, rbf_sdev_ );
   updateValue< double >( d, mynames::baseline_rate, baseline_rate_ );
+  updateValue< double >( d, mynames::background_noise, background_noise_ );
   updateValue< double >( d, mynames::gain_rate, gain_rate_ );
   updateValue< bool >( d, nest::names::to_file, to_file_ );
 }
@@ -79,14 +86,14 @@ mynest::cortex_neuron::Parameters_::set( const DictionaryDatum& d )
  * ---------------------------------------------------------------- */
 
 mynest::cortex_neuron::cortex_neuron()
-  : Archiving_Node()
+  : Node()
   , P_()
   , V_()
 {
 }
 
 mynest::cortex_neuron::cortex_neuron( const cortex_neuron& n )
-  : Archiving_Node( n )
+  : Node( n )
   , P_( n.P_ )
 {
 }
@@ -108,11 +115,11 @@ mynest::cortex_neuron::init_state_( const Node& proto )
 void
 mynest::cortex_neuron::init_buffers_()
 {
-  Archiving_Node::clear_history();
+  //Node::clear_history();
 
   double time_res = nest::Time::get_resolution().get_ms();  // 0.1
   // long ticks = 100.0 / time_res;  // 100ms
-  V_.buffer_size_ = 50.0 / time_res;
+  V_.buffer_size_ = 100.0 / time_res;
 
   B_.traj_.resize(4, std::vector<double>(P_.trial_length_));
   std::ifstream traj_file("/home/nrp/.opt/nrpStorage/USER_DATA/JointTorques.dat");
@@ -155,40 +162,56 @@ mynest::cortex_neuron::update( nest::Time const& origin, const long from, const 
   assert( static_cast<nest::delay>(from) < nest::kernel().connection_manager.get_min_delay() );
   assert( from < to );
 
-  double time_res = nest::Time::get_resolution().get_ms();  // 0.1
-  long buf_size = V_.buffer_size_;
-  librandom::RngPtr rng = nest::kernel().rng_manager.get_rng( get_thread() );
-
-  double spike_count = 0;
-  long tick = origin.get_steps();
-  for ( long i = 0; i < buf_size; i++ )
-  {
-    if ( B_.in_spikes_.count(tick - i) )
-    {
-      spike_count += B_.in_spikes_[tick - i];
-    }
+  if (P_.joint_id_ > 3) {
+    // Silent neuron is the population size is not divisible by 4
+    return;
   }
-  double in_rate = std::max( 0.0, 1000.0 * spike_count / (buf_size * time_res) );
 
+  double time_res = nest::Time::get_resolution().get_ms();
+  librandom::RngPtr rng = nest::kernel().rng_manager.get_rng( get_thread() );
+  double in_rate = 0.0;
+  
+  if (P_.joint_id_ == 1) {
+    double buf_size = V_.buffer_size_;
+    double spike_count = 0;
+    long tick = origin.get_steps();
+    for ( long i = 0; i < buf_size; i++ )
+    {
+      if ( B_.in_spikes_.count(tick - i) )
+      {
+        spike_count += B_.in_spikes_[tick - i];
+      }
+    }
+    in_rate = std::max( 0.0, 1000.0 * spike_count / (buf_size * time_res) );
+  }
   for ( long lag = from; lag < to; ++lag )
   {
     long tick = origin.get_steps() + lag;
     double sdev = P_.rbf_sdev_;
     double mean = P_.fiber_id_;
-    double desired = P_.fibers_per_joint_ * B_.traj_[P_.joint_id_][(int)(tick * time_res) % P_.trial_length_];
-
+    double desired;
+	double background_noise;
     double baseline_rate;
+    double rbf_rate;
     int j_id = P_.joint_id_;
 
     baseline_rate = P_.baseline_rate_;
-
+	background_noise = P_.background_noise_;
     if ( j_id == 1 )  // Second joint
     {
-      baseline_rate = std::max( 0.0, in_rate );
+      rbf_rate = P_.gain_rate_ * std::max( 0.0, in_rate );
+      double scale = P_.fibers_per_joint_ * 0.9;
+      desired = sdev / 2.0 + scale * B_.traj_[P_.joint_id_][(int)(tick * time_res) % P_.trial_length_];
+    }
+    else
+    {
+      rbf_rate = baseline_rate;
+	  double scale = P_.fibers_per_joint_ * 0.9;
+      desired =  sdev / 2.0 + scale * B_.traj_[P_.joint_id_][(int)(tick * time_res) % P_.trial_length_];
     }
 
-    double rate = baseline_rate * exp(-pow(((desired - mean) / sdev), 2 ));
-
+    double rate = background_noise + rbf_rate * exp(-pow(((desired - mean) / sdev), 2 ));
+	
     V_.poisson_dev_.set_lambda( time_res * rate * 1e-3 );
 
     long n_spikes = V_.poisson_dev_.ldev( rng );
@@ -196,14 +219,16 @@ mynest::cortex_neuron::update( nest::Time const& origin, const long from, const 
     if ( n_spikes > 0 )
     {
       nest::SpikeEvent se;
-      se.set_multiplicity( n_spikes );
+      se.set_multiplicity( 1 );
       nest::kernel().event_delivery_manager.send( *this, se, lag );
+      // se.get_receiver().handle( se );
 
       // set the spike times, respecting the multiplicity
-      for ( long i = 0; i < n_spikes; i++ )
-      {
-        set_spiketime( nest::Time::step( tick ) );
-      }
+      //for ( long i = 0; i < n_spikes; i++ )
+      //{
+      //  set_spiketime( nest::Time::step( tick ) );
+      //}
+      //
     }
   }
 }
