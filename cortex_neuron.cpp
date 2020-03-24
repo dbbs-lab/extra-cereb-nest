@@ -115,7 +115,7 @@ mynest::cortex_neuron::init_buffers_()
   V_.buffer_size_ = 50.0 / time_res;
 
   B_.traj_.resize(4, std::vector<double>(P_.trial_length_));
-  std::ifstream traj_file("JointTorques.dat");
+  std::ifstream traj_file("/home/nrp/.opt/nrpStorage/USER_DATA/JointTorques.dat");
 
   V_.joint_scale_factors_.resize(4);
   traj_file >> V_.joint_scale_factors_[0]
@@ -143,7 +143,7 @@ mynest::cortex_neuron::calibrate()
 {
   if ( P_.to_file_ )
   {
-    V_.out_file_.open( "cortex_out.dat" );
+    V_.out_file_.open( "/home/nrp/.opt/nrpStorage/USER_DATA/cortex_out.dat" );
   }
 }
 
