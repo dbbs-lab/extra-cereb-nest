@@ -171,7 +171,7 @@ mynest::cortex_neuron::update( nest::Time const& origin, const long from, const 
   librandom::RngPtr rng = nest::kernel().rng_manager.get_rng( get_thread() );
   double in_rate = 0.0;
   
-  if (P_.joint_id_ == 1) {
+  if (P_.joint_id_ == 0) {
     double buf_size = V_.buffer_size_;
     double spike_count = 0;
     long tick = origin.get_steps();
@@ -197,7 +197,7 @@ mynest::cortex_neuron::update( nest::Time const& origin, const long from, const 
 
     baseline_rate = P_.baseline_rate_;
 	background_noise = P_.background_noise_;
-    if ( j_id == 1 )  // Second joint
+    if ( j_id == 0 )  // First joint
     {
       rbf_rate = P_.gain_rate_ * std::max( 0.0, in_rate );
       double scale = P_.fibers_per_joint_ * 0.9;
