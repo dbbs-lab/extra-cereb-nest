@@ -54,13 +54,13 @@ def jtraj(q0, q1, tv):
 
 def plot_traj(prism=25.0, duration=300):
     # Joint angles - Initial and final (with and without perturbation)
-    q_in = np.array((10.0, -10.0, -90.0, 170.0))  # [Deg] Initial Position
+    q_in = np.array((0.0, 0.0, 0.0, 0.0))  # [Deg] Initial Position
 
     # [Deg] Final Position (without perturbation)
-    q_fin = np.array((0.0,   0.0,   0.0,   0.0))
+    q_fin = np.array((10.0, 30.0, 75.0, -45.0))
 
     # [Deg] Final Position with perturbation
-    q_prism = np.array((0.0, prism, 0.0,   0.0))
+    q_prism = np.array((10.0 + prism, 30.0, 75.0, -45.0 ))
 
     q, qd, qdd = jtraj(q_in, q_fin, duration)
     q_p, qd_p, qdd_p = jtraj(q_in, q_prism, duration)
@@ -78,16 +78,20 @@ def plot_traj(prism=25.0, duration=300):
 
     fig, (ax1, ax2, ax3) = plt.subplots(3)
     fig.suptitle('Joint Trajectories')
-    ax1.plot(q[:, 1], color='black')
-    ax1.plot(q_p[:, 1], '--', color='red')
+    ax1.plot(q[:, 0], color='black')
+    ax1.plot(q_p[:, 0], '--', color='red')
 
-    ax2.plot(qd[:, 1], color='black')
-    ax2.plot(qd_p[:, 1], '--', color='red')
+    ax2.plot(qd[:, 0], color='black')
+    ax2.plot(qd_p[:, 0], '--', color='red')
 
-    ax3.plot(qdd[:, 1], color='black')
-    ax3.plot(qdd_p[:, 1], '--', color='red')
+    ax3.plot(qdd[:, 0], color='black')
+    ax3.plot(qdd_p[:, 0], '--', color='red')
 
     plt.show()
+
+    np.savetxt("JointPositions.dat", q_p)
+    np.savetxt("JointVelocities.dat", qd_p)
+    np.savetxt("JointAccelerations.dat", qdd_p)
 
 
 def normalize(qdd):
@@ -106,8 +110,8 @@ def normalize(qdd):
 
 
 def save_file(prism=25.0, duration=300, file_name="JointTorques.dat"):
-    q_in = np.array((10.0, -10.0, -90.0, 170.0))
-    q_out = np.array((0.0, prism, 0.0,   0.0))
+    q_in = np.array((0.0, 0.0, 0.0, 0.0))
+    q_out = np.array((10.0 + prism, 30.0, 75.0, -45.0 ))
 
     q, qd, qdd = jtraj(q_in, q_out, duration)
 

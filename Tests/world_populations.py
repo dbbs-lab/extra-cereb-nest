@@ -1,6 +1,5 @@
 import numpy as np
 import matplotlib.pyplot as plt
-from itertools import accumulate
 import nest
 from population_view import PopView, Event, Events
 from world import select_trial_events
@@ -20,6 +19,7 @@ class Planner(PopView):
             }
         params.update(kwargs)
         pop = nest.Create("planner_neuron", n=n, params=params)
+        print(pop)
         super().__init__(pop)
 
     def set_prism(self, prism):
@@ -87,8 +87,8 @@ class Cortex(PopView):
         self.torques = moving_average(self.torques)
 
         # torques = [2.0*n_id / pop_size - 1.0 for n_id in trial_events.n_ids]
-        self.vel = np.array(list(accumulate(self.torques))) / pop_size
-        self.pos = np.array(list(accumulate(self.vel))) / pop_size
+        self.vel = np.array(list(np.cumsum(self.torques))) / pop_size
+        self.pos = np.array(list(np.cumsum(self.vel))) / pop_size
 
         final_x = self.pos[-1]
         return final_x
@@ -214,7 +214,7 @@ class InverseDCN(PopView):
 
             self.plus = PopView(pop_1)
             self.minus = PopView(pop_2)
-        
+
         self.torques = np.zeros(trial_len)
         self.vel = np.zeros(trial_len)
         self.pos = np.zeros(trial_len)
@@ -242,8 +242,8 @@ class InverseDCN(PopView):
 
         self.torques = moving_average(self.torques)
 
-        self.vel = np.array(list(accumulate(self.torques))) / pop_size
-        self.pos = np.array(list(accumulate(self.vel))) / pop_size
+        self.vel = np.array(list(np.cumsum(self.torques))) / pop_size
+        self.pos = np.array(list(np.cumsum(self.vel))) / pop_size
 
         final_x = self.pos[-1]
         return final_x
